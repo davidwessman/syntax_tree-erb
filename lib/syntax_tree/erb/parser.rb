@@ -551,15 +551,25 @@ module SyntaxTree
 
       def parse_html_attribute
         key = consume(:name)
-        equals = consume(:equals)
-        value = parse_string
+        equals = maybe { consume(:equals) }
 
-        HtmlAttribute.new(
-          key: key,
-          equals: equals,
-          value: value,
-          location: key.location.to(value.location)
-        )
+        if equals.nil?
+          HtmlAttribute.new(
+            key: key,
+            equals: nil,
+            value: nil,
+            location: key.location
+          )
+        else
+          value = parse_string
+
+          HtmlAttribute.new(
+            key: key,
+            equals: equals,
+            value: value,
+            location: key.location.to(value.location)
+          )
+        end
       end
 
       def parse_chardata

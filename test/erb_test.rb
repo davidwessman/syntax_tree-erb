@@ -16,6 +16,10 @@ module SyntaxTree
       assert_parsing("if_statements")
     end
 
+    def test_vue_components
+      assert_parsing("vue_components")
+    end
+
     private
 
     def assert_parsing(name)

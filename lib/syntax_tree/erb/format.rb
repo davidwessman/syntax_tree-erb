@@ -29,7 +29,7 @@ module SyntaxTree
         q.group do
           visit(node.opening_tag)
 
-          if node.content
+          if node.content.any?
             q.indent do
               q.breakable("")
               q.seplist(
