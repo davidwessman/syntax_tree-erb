@@ -4,7 +4,7 @@ module SyntaxTree
   module ERB
     class Parser
       NAME_START =
-        "[:a-zA-Z_\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}]"
+        "[@:a-zA-Z_\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}]"
 
       NAME_CHAR =
         "[#{NAME_START}-\\.\\d\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}]"
