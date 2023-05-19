@@ -20,6 +20,19 @@ module SyntaxTree
       assert_parsing("vue_components")
     end
 
+    def test_empty_file
+      parsed = ERB.parse("")
+      assert_instance_of(SyntaxTree::ERB::Document, parsed)
+      assert_empty(parsed.elements)
+      assert_nil(parsed.location)
+    end
+
+    def test_invalid_file
+      assert_raises(SyntaxTree::ERB::Parser::ErbKeywordError) do
+        ERB.parse("<% if no_end_tag %>")
+      end
+    end
+
     private
 
     def assert_parsing(name)

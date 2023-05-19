@@ -46,10 +46,10 @@ module SyntaxTree
       def parse
         elements = many { parse_any_tag }
 
-        Document.new(
-          elements: elements,
-          location: elements.first.location.to(elements.last.location)
-        )
+        location =
+          elements.first.location.to(elements.last.location) if elements.any?
+
+        Document.new(elements: elements, location: location)
       end
 
       def debug_tokens
@@ -103,9 +103,15 @@ module SyntaxTree
                 state << :erb
                 line += $&.count("\n")
               when /\A<%\s*if/
-                # ERB elsif statements
-                # <% elsif
+                # ERB if statements
+                # <% if
                 enum.yield :erb_if_open, $&, index, line
+                state << :erb
+                line += $&.count("\n")
+              when /\A<%\s*unless/
+                # ERB unless statements
+                # <% unless
+                enum.yield :erb_unless_open, $&, index, line
                 state << :erb
                 line += $&.count("\n")
               when /\A<%\s*end\s*%>/
@@ -302,7 +308,8 @@ module SyntaxTree
 
         loop do
           begin
-            result = maybe { parse_erb_end } || maybe { parse_any_tag }
+            result =
+              atleast { maybe { parse_erb_end } || maybe { parse_any_tag } }
             items << result
             break if result.is_a?(ErbEnd)
           rescue ErbKeywordError
@@ -318,8 +325,10 @@ module SyntaxTree
 
         loop do
           result =
-            maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
-              maybe { parse_erb_end } || maybe { parse_any_tag }
+            atleast do
+              maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
+                maybe { parse_erb_end } || maybe { parse_any_tag }
+            end
           items << result
           if result.is_a?(ErbElsif) || result.is_a?(ErbElse) ||
                result.is_a?(ErbEnd)
@@ -335,9 +344,13 @@ module SyntaxTree
 
         loop do
           result =
-            maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
-              maybe { parse_erb_end } || maybe { parse_any_tag }
+            atleast do
+              maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
+                maybe { parse_erb_end } || maybe { parse_any_tag }
+            end
+
           items << result
+
           if result.is_a?(ErbElsif) || result.is_a?(ErbElse) ||
                result.is_a?(ErbEnd)
             break
@@ -345,15 +358,6 @@ module SyntaxTree
         end
 
         items
-      end
-
-      def parse_content
-        many do
-          atleast do
-            maybe { parse_html_element } || maybe { parse_chardata } ||
-              maybe { parse_erb_tag } || maybe { consume(:comment) }
-          end
-        end
       end
 
       def parse_html_opening_tag
@@ -392,7 +396,7 @@ module SyntaxTree
         opening_tag = parse_html_opening_tag
 
         if opening_tag.closing.value == ">"
-          content = parse_content
+          content = many { parse_any_tag }
           closing_tag = parse_html_closing_tag
 
           HtmlNode.new(
@@ -412,11 +416,16 @@ module SyntaxTree
       end
 
       def parse_erb_if
-        opening_tag = consume(:erb_if_open)
+        opening_tag =
+          atleast do
+            maybe { consume(:erb_if_open) } ||
+              maybe { consume(:erb_unless_open) }
+          end
+
         statement = many { consume(:erb_code) }
         closing_tag = consume(:erb_close)
 
-        contents = parse_any_tag_after_erb_if
+        contents = maybe { parse_any_tag_after_erb_if } || []
 
         erb_tag = contents.pop
 
