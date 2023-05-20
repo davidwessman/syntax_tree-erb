@@ -63,7 +63,8 @@ module SyntaxTree
       def parse_any_tag
         atleast do
           maybe { parse_erb_tag } || maybe { consume(:erb_comment) } ||
-            maybe { parse_html_element } || maybe { parse_chardata }
+            maybe { parse_html_element } || maybe { parse_blank_line } ||
+            maybe { parse_chardata }
         end
       end
 
@@ -77,6 +78,10 @@ module SyntaxTree
             case state.last
             in :outside
               case source[index..]
+              when /\A\n{2,}/
+                # two or more newlines should be ONE blank line
+                enum.yield :blank_line, $&, index, line
+                line += $&.count("\n")
               when /\A(?: |\t|\n|\r\n)+/m
                 # whitespace
                 # enum.yield :whitespace, $&, index, line
@@ -493,6 +498,12 @@ module SyntaxTree
             erb_node
           end
         end
+      end
+
+      def parse_blank_line
+        blank_line = consume(:blank_line)
+
+        CharData.new(value: blank_line, location: blank_line.location)
       end
 
       def parse_erb_do_close
