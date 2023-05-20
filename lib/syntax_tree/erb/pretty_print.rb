@@ -41,8 +41,15 @@ module SyntaxTree
           q.nest(2) do
             q.breakable
             visit(node.opening_tag)
-            q.breakable
-            q.text("content")
+            if node.keyword
+              q.breakable
+              visit(node.keyword)
+            end
+            if node.content
+              q.breakable
+              q.text("content")
+            end
+
             q.breakable
             visit(node.closing_tag)
           end
@@ -67,7 +74,8 @@ module SyntaxTree
 
       def visit_erb_if(node, key = "erb_if")
         q.group do
-          q.text("(#{key}")
+          q.text("(")
+          visit(node.keyword) if node.keyword
           q.nest(2) do
             q.breakable()
             q.seplist(node.child_nodes) { |child_node| visit(child_node) }
@@ -77,19 +85,6 @@ module SyntaxTree
           q.breakable("")
           q.text(")")
         end
-      end
-
-      # Visit an ErbUnless node.
-      def visit_erb_unless(node)
-        visit_erb_if(node, key: "unless")
-      end
-
-      def visit_erb_elsif(node)
-        visit_erb_if(node, "erb_elsif")
-      end
-
-      def visit_erb_else(node)
-        visit_erb_if(node, "erb_else")
       end
 
       def visit_erb_end(node)
@@ -119,6 +114,10 @@ module SyntaxTree
       # Visit a CharData node.
       def visit_char_data(node)
         visit_node("char_data", node)
+      end
+
+      def visit_erb_do_close(node)
+        visit_node("erb_do_close", node)
       end
 
       private

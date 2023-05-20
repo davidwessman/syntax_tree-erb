@@ -8,6 +8,10 @@ module SyntaxTree
       assert_parsing("block")
     end
 
+    def test_erb_syntax
+      assert_parsing("erb_syntax")
+    end
+
     def test_nested_html
       assert_parsing("nested_html")
     end

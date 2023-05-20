@@ -199,12 +199,12 @@ module SyntaxTree
     end
 
     class ErbNode < Node
-      attr_reader :opening_tag, :content, :closing_tag, :location
+      attr_reader :opening_tag, :keyword, :content, :closing_tag, :location
 
-      def initialize(opening_tag:, content:, closing_tag:, location:)
+      def initialize(opening_tag:, keyword:, content:, closing_tag:, location:)
         @opening_tag = opening_tag
-        @content = ErbContent.new(value: content)
-
+        @keyword = keyword
+        @content = ErbContent.new(value: content) if content
         @closing_tag = closing_tag
         @location = location
       end
@@ -214,7 +214,7 @@ module SyntaxTree
       end
 
       def child_nodes
-        [opening_tag, content, closing_tag].compact
+        [opening_tag, keyword, content, closing_tag].compact
       end
 
       alias deconstruct child_nodes
@@ -222,6 +222,7 @@ module SyntaxTree
       def deconstruct_keys(keys)
         {
           opening_tag: opening_tag,
+          keyword: keyword,
           content: content,
           closing_tag: closing_tag,
           location: location
@@ -260,11 +261,12 @@ module SyntaxTree
     end
 
     class ErbDoClose < Node
-      attr_reader :location, :value
+      attr_reader :location, :value, :closing
 
-      def initialize(location:, value:)
+      def initialize(location:, value:, closing:)
         @location = location
         @value = value
+        @closing = closing
       end
 
       def accept(visitor)
@@ -278,7 +280,7 @@ module SyntaxTree
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        { location: location, value: value }
+        { location: location, value: value, closing: closing }
       end
     end
 
@@ -330,30 +332,15 @@ module SyntaxTree
     end
 
     class ErbUnless < ErbIf
-      def accept(visitor)
-        visitor.visit_erb_unless(self)
-      end
     end
 
     class ErbElsif < ErbIf
-      def accept(visitor)
-        visitor.visit_erb_elsif(self)
-      end
     end
 
     class ErbElse < ErbIf
-      def accept(visitor)
-        visitor.visit_erb_else(self)
-      end
     end
 
-    class ErbEnd < Node
-      attr_reader :location
-
-      def initialize(location:)
-        @location = location
-      end
-
+    class ErbEnd < ErbNode
       def accept(visitor)
         visitor.visit_erb_end(self)
       end
@@ -363,10 +350,6 @@ module SyntaxTree
       end
 
       alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        { location: location }
-      end
     end
 
     class ErbContent < Node
@@ -377,8 +360,9 @@ module SyntaxTree
         begin
           @value = SyntaxTree.parse(@value)
           @parsed = true
-        rescue SyntaxTree::Parser::ParseError => error
-          puts error.message
+        rescue SyntaxTree::Parser::ParseError
+          # Removes leading and trailing whitespace
+          @value = @value&.lstrip&.rstrip
           @parsed = false
         end
       end

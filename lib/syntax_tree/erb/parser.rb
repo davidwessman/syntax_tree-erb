@@ -62,7 +62,7 @@ module SyntaxTree
 
       def parse_any_tag
         atleast do
-          maybe { parse_erb_if } || maybe { parse_erb_tag } ||
+          maybe { parse_erb_tag } || maybe { consume(:erb_comment) } ||
             maybe { parse_html_element } || maybe { parse_chardata }
         end
       end
@@ -91,39 +91,16 @@ module SyntaxTree
                 # <!DOCTYPE
                 enum.yield :doctype, $&, index, line
                 state << :inside
-              when /\A<%\s*else\s*%>/
-                # ERB else statements
-                # <% else %>
-                enum.yield :erb_else, $&, index, line
-                line += $&.count("\n")
-              when /\A<%\s*elsif/
-                # ERB elsif statements
-                # <% elsif
-                enum.yield :erb_elsif_open, $&, index, line
-                state << :erb
-                line += $&.count("\n")
-              when /\A<%\s*if/
-                # ERB if statements
-                # <% if
-                enum.yield :erb_if_open, $&, index, line
-                state << :erb
-                line += $&.count("\n")
-              when /\A<%\s*unless/
-                # ERB unless statements
-                # <% unless
-                enum.yield :erb_unless_open, $&, index, line
-                state << :erb
-                line += $&.count("\n")
-              when /\A<%\s*end\s*%>/
-                # ERB end statements
-                # <% end %>
-                enum.yield :erb_end, $&, index, line
-                line += $&.count("\n")
-              when /\A<%[=]?/
+              when /\A<%#.*%>/
+                # An ERB-comment
+                # <%# this is an ERB comment %>
+                enum.yield :erb_comment, $&, index, line
+              when /\A<%={1,2}/, /\A<%-/, /\A<%/
                 # the beginning of an ERB tag
                 # <%
+                # <%=, <%==
                 enum.yield :erb_open, $&, index, line
-                state << :erb
+                state << :erb_start
                 line += $&.count("\n")
               when %r{\A</}
                 # the beginning of a closing tag
@@ -147,6 +124,46 @@ module SyntaxTree
                 raise ParseError,
                       "Unexpected character at #{index}: #{source[index]}"
               end
+            in :erb_start
+              case source[index..]
+              when /\A\s*if/
+                # if statement
+                enum.yield :erb_if, $&, index, line
+                state.pop
+                state << :erb
+              when /\A\s*unless/
+                enum.yield :erb_unless, $&, index, line
+                state.pop
+                state << :erb
+              when /\A\s*elsif/
+                enum.yield :erb_elsif, $&, index, line
+                state.pop
+                state << :erb
+              when /\A\s*else/
+                enum.yield :erb_else, $&, index, line
+                state.pop
+                state << :erb
+              when /\A\s*case/
+                raise(
+                  NotImplementedError,
+                  "case statements are not implemented"
+                )
+              when /\A\s*when/
+                raise(
+                  NotImplementedError,
+                  "when statements are not implemented"
+                )
+              when /\A\s*end/
+                enum.yield :erb_end, $&, index, line
+                state.pop
+                state << :erb
+              else
+                # If we get here, then we did not have any special
+                # keyword in the erb-tag.
+                state.pop
+                state << :erb
+                next
+              end
             in :erb
               case source[index..]
               when /\A[\n]+/
@@ -155,7 +172,7 @@ module SyntaxTree
               when /\Ado\s*.*?\s*%>/
                 enum.yield :erb_do_close, $&, index, line
                 state.pop
-              when /\A%>/
+              when /\A-?%>/
                 enum.yield :erb_close, $&, index, line
                 state.pop
               else
@@ -191,9 +208,9 @@ module SyntaxTree
               when /\A[ \t\r\n]+/
                 # whitespace
                 line += $&.count("\n")
-              when /\A%>/
+              when /\A-?%>/
                 # the end of an ERB tag
-                # %>
+                # -%> or %>
                 enum.yield :erb_close, $&, index, line
                 state.pop
               when /\A>/
@@ -303,56 +320,15 @@ module SyntaxTree
         items
       end
 
-      def parse_until_erb_end
+      def parse_until_erb(classes:)
         items = []
 
         loop do
           begin
-            result =
-              atleast { maybe { parse_erb_end } || maybe { parse_any_tag } }
+            result = parse_any_tag
             items << result
-            break if result.is_a?(ErbEnd)
+            break if classes.any? { |cls| result.is_a?(cls) }
           rescue ErbKeywordError
-            break
-          end
-        end
-
-        items
-      end
-
-      def parse_any_tag_after_erb_elsif
-        items = []
-
-        loop do
-          result =
-            atleast do
-              maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
-                maybe { parse_erb_end } || maybe { parse_any_tag }
-            end
-          items << result
-          if result.is_a?(ErbElsif) || result.is_a?(ErbElse) ||
-               result.is_a?(ErbEnd)
-            break
-          end
-        end
-
-        items
-      end
-
-      def parse_any_tag_after_erb_if
-        items = []
-
-        loop do
-          result =
-            atleast do
-              maybe { parse_erb_elsif } || maybe { parse_erb_else } ||
-                maybe { parse_erb_end } || maybe { parse_any_tag }
-            end
-
-          items << result
-
-          if result.is_a?(ErbElsif) || result.is_a?(ErbElse) ||
-               result.is_a?(ErbEnd)
             break
           end
         end
@@ -415,93 +391,54 @@ module SyntaxTree
         end
       end
 
-      def parse_erb_if
-        opening_tag =
-          atleast do
-            maybe { consume(:erb_if_open) } ||
-              maybe { consume(:erb_unless_open) }
-          end
+      def parse_erb_if(erb_node)
+        elements =
+          maybe { parse_until_erb(classes: [ErbElsif, ErbElse, ErbEnd]) } || []
 
-        statement = many { consume(:erb_code) }
-        closing_tag = consume(:erb_close)
-
-        contents = maybe { parse_any_tag_after_erb_if } || []
-
-        erb_tag = contents.pop
+        erb_tag = elements.pop
 
         unless erb_tag.is_a?(ErbControl) || erb_tag.is_a?(ErbEnd)
           raise(ErbKeywordError, "Found no matching tag to the if-tag")
         end
 
-        if opening_tag.type == :erb_if_open
-          ErbIf.new(
-            erb_node:
-              ErbNode.new(
-                opening_tag: opening_tag,
-                content: statement.map(&:value).join,
-                closing_tag: closing_tag,
-                location: opening_tag.location.to(closing_tag.location)
-              ),
-            elements: contents,
-            consequent: erb_tag
-          )
-        else
+        case erb_node.keyword.type
+        when :erb_if
+          ErbIf.new(erb_node: erb_node, elements: elements, consequent: erb_tag)
+        when :erb_unless
           ErbUnless.new(
-            erb_node:
-              ErbNode.new(
-                opening_tag: opening_tag,
-                content: statement.map(&:value).join,
-                closing_tag: closing_tag,
-                location: opening_tag.location.to(closing_tag.location)
-              ),
-            elements: contents,
+            erb_node: erb_node,
+            elements: elements,
+            consequent: erb_tag
+          )
+        when :erb_elsif
+          ErbElsif.new(
+            erb_node: erb_node,
+            elements: elements,
             consequent: erb_tag
           )
         end
       end
 
-      def parse_erb_elsif
-        opening_tag = consume(:erb_elsif_open)
-        statement = many { consume(:erb_code) }
-        closing_tag = consume(:erb_close)
+      def parse_erb_else(erb_node)
+        elements = maybe { parse_until_erb(classes: [ErbEnd]) } || []
 
-        contents = parse_any_tag_after_erb_elsif
-
-        erb_tag = contents.pop
-
-        unless erb_tag.is_a?(ErbControl)
-          raise(ErbKeywordError, "Found no matching end-tag to the elsif-tag")
-        end
-
-        ErbElsif.new(
-          erb_node:
-            ErbNode.new(
-              opening_tag: opening_tag,
-              content: statement.map(&:value).join,
-              closing_tag: closing_tag,
-              location: opening_tag.location.to(closing_tag.location)
-            ),
-          elements: contents,
-          consequent: erb_tag
-        )
-      end
-
-      def parse_erb_else
-        tag = consume(:erb_else)
-        child_nodes = parse_until_erb_end
-
-        erb_end = child_nodes.pop
+        erb_end = elements.pop
 
         unless erb_end.is_a?(ErbEnd)
           raise(ErbKeywordError, "Found no matching end-tag for the else-tag")
         end
 
-        ErbElse.new(erb_node: tag, elements: child_nodes, consequent: erb_end)
+        ErbElse.new(erb_node: erb_node, elements: elements, consequent: erb_end)
       end
 
-      def parse_erb_end
-        tag = consume(:erb_end)
-        ErbEnd.new(location: tag.location)
+      def parse_erb_end(erb_node)
+        ErbEnd.new(
+          opening_tag: erb_node.opening_tag,
+          keyword: erb_node.keyword,
+          content: nil,
+          closing_tag: erb_node.closing_tag,
+          location: erb_node.location
+        )
       end
 
       def parse_ruby_or_string(content)
@@ -512,6 +449,10 @@ module SyntaxTree
 
       def parse_erb_tag
         opening_tag = consume(:erb_open)
+        keyword =
+          maybe { consume(:erb_if) } || maybe { consume(:erb_unless) } ||
+            maybe { consume(:erb_elsif) } || maybe { consume(:erb_else) } ||
+            maybe { consume(:erb_end) }
         content = many { consume(:erb_code) }
         closing_tag =
           atleast do
@@ -521,35 +462,48 @@ module SyntaxTree
         erb_node =
           ErbNode.new(
             opening_tag: opening_tag,
+            keyword: keyword,
             content: content.map(&:value).join,
             closing_tag: closing_tag,
             location: opening_tag.location.to(closing_tag.location)
           )
 
-        if closing_tag.is_a?(ErbDoClose)
-          elements = parse_until_erb_end
-          erb_end = elements.pop
-
-          unless erb_end.is_a?(ErbEnd)
-            raise(ErbKeywordError, "Found no matching end-tag for the do-tag")
-          end
-
-          ErbBlock.new(
-            erb_node: erb_node,
-            elements: elements,
-            consequent: erb_end
-          )
+        case keyword&.type
+        when :erb_if, :erb_unless, :erb_elsif
+          parse_erb_if(erb_node)
+        when :erb_else
+          parse_erb_else(erb_node)
+        when :erb_end
+          parse_erb_end(erb_node)
         else
-          erb_node
+          if closing_tag.is_a?(ErbDoClose)
+            elements = parse_until_erb(classes: [ErbEnd])
+            erb_end = elements.pop
+
+            unless erb_end.is_a?(ErbEnd)
+              raise(ErbKeywordError, "Found no matching end-tag for the do-tag")
+            end
+
+            ErbBlock.new(
+              erb_node: erb_node,
+              elements: elements,
+              consequent: erb_end
+            )
+          else
+            erb_node
+          end
         end
       end
 
       def parse_erb_do_close
         token = consume(:erb_do_close)
 
+        closing = token.value.match(/-?%>$/).to_s
+
         ErbDoClose.new(
           location: token.location,
-          value: token.value.gsub(/%>/, "")
+          value: token.value.gsub(closing, ""),
+          closing: closing
         )
       end
 

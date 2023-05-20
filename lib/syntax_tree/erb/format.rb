@@ -48,9 +48,12 @@ module SyntaxTree
       def visit_erb(node)
         visit(node.opening_tag)
 
-        q.text(" ")
+        if node.keyword
+          q.text(" ")
+          visit(node.keyword)
+        end
+
         visit(node.content)
-        q.text(" ")
 
         visit(node.closing_tag)
       end
@@ -76,15 +79,14 @@ module SyntaxTree
 
       def visit_erb_do_close(node)
         q.text(node.value.rstrip)
-        q.text(" %>")
+        q.text(" ")
+        q.text(node.closing)
       end
 
       # Visit an ErbIf node.
-      def visit_erb_if(node, key: "if")
+      def visit_erb_if(node)
         q.group do
-          q.text("<% #{key} ")
-          visit(node.erb_node.content)
-          q.text(" %>")
+          visit(node.erb_node)
 
           if node.elements.any?
             q.indent do
@@ -101,54 +103,35 @@ module SyntaxTree
         end
       end
 
-      # Visit an ErbUnless node.
-      def visit_erb_unless(node)
-        visit_erb_if(node, key: "unless")
-      end
-
-      # Visit an ErbElsIf node.
-      def visit_erb_elsif(node)
-        visit_erb_if(node, key: "elsif")
-      end
-
-      # Visit an ErbElse node.
-      def visit_erb_else(node)
-        q.group do
-          q.text("<% else %>")
-
-          q.indent do
-            q.breakable
-            visit_all(node.elements)
-          end
-
-          q.breakable_force
-          visit(node.consequent)
-        end
-      end
-
       # Visit an ErbEnd node.
       def visit_erb_end(node)
-        q.text("<% end %>")
+        visit(node.opening_tag)
+        q.text(" ")
+        visit(node.keyword)
+        q.text(" ")
+        visit(node.closing_tag)
       end
 
       def visit_erb_content(node)
-        if (node.value.is_a?(String))
-          q.text(node.value)
-        else
-          formatter =
-            SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
-          formatter.format(node.value.statements)
-          formatter.flush
+        formatter =
+          SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
+        formatter.format(node.value.statements)
+        formatter.flush
 
-          rows = formatter.output.join.split("\n")
+        rows = formatter.output.join.split("\n")
 
-          if rows.size > 1
-            q.group do
-              q.seplist(rows, -> { q.breakable(" ") }) { |row| q.text(row) }
-            end
-          else
-            q.text(rows.first)
+        if rows.size > 1
+          q.group do
+            q.text(" ")
+            q.seplist(rows, -> { q.breakable(" ") }) { |row| q.text(row) }
+            q.text(" ")
           end
+        elsif rows.size == 1
+          q.text(" ")
+          q.text(rows.first)
+          q.text(" ")
+        else
+          q.text(" ")
         end
       end
 

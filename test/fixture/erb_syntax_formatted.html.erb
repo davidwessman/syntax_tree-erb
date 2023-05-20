@@ -1,0 +1,21 @@
+<% this = "avoids line break after expression" -%>
+<%# This is an ERB-comment https://stackoverflow.com/a/25626629 this answer describes ERB and erubis syntax%>
+<%== rails_raw_output %>
+<%- "this only works in ERB not erubis" %>
+<% if this -%>
+  <%= form.submit -%>
+<% elsif that -%>
+  <%= form.submit -%>
+<% else -%>
+  <%= form.submit -%>
+<% end -%>
+<%- if this %>
+  <%= form.submit -%>
+<%- elsif that %>
+  <%= form.submit -%>
+<%- else %>
+  <%= form.submit -%>
+<%- end %>
+<%= link_to(link, text) do -%>
+  <h1>Cool</h1>
+<%- end %>
