@@ -464,5 +464,34 @@ module SyntaxTree
         { value: value, location: location }
       end
     end
+
+    # A document type declaration is a special kind of tag that specifies the
+    # type of the document. It contains an opening declaration, the name of
+    # the document type, an optional external identifier, and a closing of the
+    # tag.
+    class DocType < Node
+      attr_reader :opening, :name, :closing, :location
+
+      def initialize(opening:, name:, closing:, location:)
+        @opening = opening
+        @name = name
+        @closing = closing
+        @location = location
+      end
+
+      def accept(visitor)
+        visitor.visit_doctype(self)
+      end
+
+      def child_nodes
+        [opening, name, closing].compact
+      end
+
+      alias deconstruct child_nodes
+
+      def deconstruct_keys(keys)
+        { opening: opening, name: name, closing: closing, location: location }
+      end
+    end
   end
 end

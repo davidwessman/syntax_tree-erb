@@ -198,6 +198,17 @@ module SyntaxTree
         end
       end
 
+      # Visit a Doctype node.
+      def visit_doctype(node)
+        q.group do
+          visit(node.opening)
+          q.text(" ")
+          visit(node.name)
+
+          visit(node.closing)
+        end
+      end
+
       private
 
       # Format a text by splitting nicely at newlines and spaces.

@@ -24,6 +24,10 @@ module SyntaxTree
       assert_parsing("vue_components")
     end
 
+    def test_layout
+      assert_parsing("layout")
+    end
+
     def test_empty_file
       parsed = ERB.parse("")
       assert_instance_of(SyntaxTree::ERB::Document, parsed)

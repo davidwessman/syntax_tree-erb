@@ -44,12 +44,13 @@ module SyntaxTree
       end
 
       def parse
+        doctype = maybe { parse_doctype }
         elements = many { parse_any_tag }
 
         location =
           elements.first.location.to(elements.last.location) if elements.any?
 
-        Document.new(elements: elements, location: location)
+        Document.new(elements: [doctype].compact + elements, location: location)
       end
 
       def debug_tokens
@@ -121,7 +122,7 @@ module SyntaxTree
                 # the beginning of a string
                 enum.yield :string_open, $&, index, line
                 state << :string
-              when /\A[^<&]+/
+              when /\A[^<]+/
                 # plain text content
                 # abc
                 enum.yield :text, $&, index, line
@@ -200,7 +201,7 @@ module SyntaxTree
                 # <%
                 enum.yield :erb_open, $&, index, line
                 state << :erb
-              when /\A[^<&"]+/
+              when /\A[^<"]+/
                 # plain text content
                 # abc
                 enum.yield :text, $&, index, line
@@ -580,6 +581,19 @@ module SyntaxTree
           end
 
         CharData.new(value: token, location: token.location) if token
+      end
+
+      def parse_doctype
+        opening = consume(:doctype)
+        name = consume(:name)
+        closing = consume(:close)
+
+        DocType.new(
+          opening: opening,
+          name: name,
+          closing: closing,
+          location: opening.location.to(closing.location)
+        )
       end
     end
   end

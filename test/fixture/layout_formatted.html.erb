@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1 maximum-scale=1.0, user-scalable=no"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css?family=Inter:100,200,300,400,500,600,700,800,900&display=swap"
+      rel="stylesheet"
+    />
+
+    <title><%= full_title(t("general.title"), yield(:title)) %></title>
+    <%= stylesheet_link_tag(
+      "application",
+      media: "all",
+      "data-turbolinks-track": "reload"
+    ) %>
+    <%= javascript_include_tag(
+      "application",
+      "data-turbolinks-track": "reload",
+      defer: true
+    ) %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= render("application/favicon") %>
+  </head>
+
+  <body>
+    <div class="flex flex-col min-h-screen bg-gray-100">
+      <%= render("header") %>
+
+      <div class="flex flex-1 lg:overflow-hidden">
+        <%= yield(:sidebar) %>
+        <main class="relative flex flex-col flex-1 lg:overflow-y-auto">
+          <%= render("application/heading") %>
+          <%= render("flashes") %>
+          <%= yield %>
+        </main>
+      </div>
+
+      <footer><%= render("footer") %></footer>
+    </div>
+  </body>
+</html>

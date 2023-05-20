@@ -120,6 +120,11 @@ module SyntaxTree
         visit_node("erb_do_close", node)
       end
 
+      # Visit a Doctype node.
+      def visit_doctype(node)
+        visit_node("doctype", node)
+      end
+
       private
 
       # A generic visit node function for how we pretty print nodes.
