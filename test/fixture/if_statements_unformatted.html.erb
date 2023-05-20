@@ -1,3 +1,6 @@
 <%if this%><h1>that</h1><%elsif that %><h2>this</h2>
 <% if nested_this %><h1>this</h1><%end%><%else%><h2>else</h2><%end %>
 <%= what if this %>
+<h1><% unless what %> Ja<% elsif allowed? %>
+    Nej<% else %>Kanske
+        <% end %></h1>

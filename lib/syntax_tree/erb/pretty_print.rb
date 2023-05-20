@@ -79,6 +79,11 @@ module SyntaxTree
         end
       end
 
+      # Visit an ErbUnless node.
+      def visit_erb_unless(node)
+        visit_erb_if(node, key: "unless")
+      end
+
       def visit_erb_elsif(node)
         visit_erb_if(node, "erb_elsif")
       end

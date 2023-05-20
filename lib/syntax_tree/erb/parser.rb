@@ -433,17 +433,31 @@ module SyntaxTree
           raise(ErbKeywordError, "Found no matching tag to the if-tag")
         end
 
-        ErbIf.new(
-          erb_node:
-            ErbNode.new(
-              opening_tag: opening_tag,
-              content: statement.map(&:value).join,
-              closing_tag: closing_tag,
-              location: opening_tag.location.to(closing_tag.location)
-            ),
-          elements: contents,
-          consequent: erb_tag
-        )
+        if opening_tag.type == :erb_if_open
+          ErbIf.new(
+            erb_node:
+              ErbNode.new(
+                opening_tag: opening_tag,
+                content: statement.map(&:value).join,
+                closing_tag: closing_tag,
+                location: opening_tag.location.to(closing_tag.location)
+              ),
+            elements: contents,
+            consequent: erb_tag
+          )
+        else
+          ErbUnless.new(
+            erb_node:
+              ErbNode.new(
+                opening_tag: opening_tag,
+                content: statement.map(&:value).join,
+                closing_tag: closing_tag,
+                location: opening_tag.location.to(closing_tag.location)
+              ),
+            elements: contents,
+            consequent: erb_tag
+          )
+        end
       end
 
       def parse_erb_elsif

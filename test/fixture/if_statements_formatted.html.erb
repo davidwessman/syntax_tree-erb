@@ -9,3 +9,12 @@
   <h2>else</h2>
 <% end %>
 <%= what if this %>
+<h1>
+  <% unless what %>
+    Ja
+  <% elsif allowed? %>
+    Nej
+  <% else %>
+    Kanske
+  <% end %>
+</h1>

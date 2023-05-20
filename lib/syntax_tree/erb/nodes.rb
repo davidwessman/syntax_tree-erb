@@ -329,6 +329,12 @@ module SyntaxTree
       end
     end
 
+    class ErbUnless < ErbIf
+      def accept(visitor)
+        visitor.visit_erb_unless(self)
+      end
+    end
+
     class ErbElsif < ErbIf
       def accept(visitor)
         visitor.visit_erb_elsif(self)
