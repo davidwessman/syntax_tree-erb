@@ -482,7 +482,7 @@ module SyntaxTree
     # type of the document. It contains an opening declaration, the name of
     # the document type, an optional external identifier, and a closing of the
     # tag.
-    class DocType < Node
+    class Doctype < Node
       attr_reader :opening, :name, :closing, :location
 
       def initialize(opening:, name:, closing:, location:)

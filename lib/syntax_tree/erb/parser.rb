@@ -79,7 +79,7 @@ module SyntaxTree
                 # <!-- this is a comment -->
                 enum.yield :comment, $&, index, line
                 line += $&.count("\n")
-              when /\A<!DOCTYPE/
+              when /\A<!DOCTYPE/, /\A<!doctype/
                 # document type tags
                 # <!DOCTYPE
                 enum.yield :doctype, $&, index, line
@@ -663,7 +663,7 @@ module SyntaxTree
         name = consume(:name)
         closing = consume(:close)
 
-        DocType.new(
+        Doctype.new(
           opening: opening,
           name: name,
           closing: closing,

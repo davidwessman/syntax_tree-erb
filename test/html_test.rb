@@ -21,10 +21,19 @@ module SyntaxTree
         ERB.parse("<div class=\"card-\"\">Hello World</div>")
       end
     end
+
     def test_html_unmatched_single_quote
       assert_raises(SyntaxTree::ERB::Parser::ParseError) do
         ERB.parse("<div class='card-''>Hello World</div>")
       end
+    end
+
+    def test_html_doctype
+      parsed = ERB.parse("<!DOCTYPE html>")
+      assert_instance_of(SyntaxTree::ERB::Doctype, parsed.elements.first)
+
+      parsed = ERB.parse("<!doctype html>")
+      assert_instance_of(SyntaxTree::ERB::Doctype, parsed.elements.first)
     end
   end
 end
