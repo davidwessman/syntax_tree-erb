@@ -78,9 +78,11 @@ module SyntaxTree
       end
 
       def visit_erb_do_close(node)
-        q.text(node.value.rstrip)
-        q.text(" ")
-        q.text(node.closing)
+        visit(node.closing)
+      end
+
+      def visit_erb_close(node)
+        visit(node.closing)
       end
 
       # Visit an ErbIf node.
@@ -175,6 +177,15 @@ module SyntaxTree
           visit(node.key)
           visit(node.equals)
           visit(node.value)
+        end
+      end
+
+      # Visit an HtmlString node.
+      def visit_html_string(node)
+        q.group do
+          visit(node.opening)
+          q.seplist(node.contents, -> { "" }) { |child_node| visit(child_node) }
+          visit(node.closing)
         end
       end
 

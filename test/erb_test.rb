@@ -41,6 +41,12 @@ module SyntaxTree
       end
     end
 
+    def test_missing_erb_block_end_tag
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<% no_end_tag do %>")
+      end
+    end
+
     def test_missing_html_end_tag
       assert_raises(SyntaxTree::ERB::Parser::ParseError) do
         ERB.parse("<h1>Hello World")

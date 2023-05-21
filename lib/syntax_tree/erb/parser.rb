@@ -107,7 +107,7 @@ module SyntaxTree
                 state << :inside
               when /\A"/
                 # the beginning of a string
-                enum.yield :string_open, $&, index, line
+                enum.yield :string_open_double_quote, $&, index, line
                 state << :string
               when /\A[^<]+/
                 # plain text content
@@ -162,12 +162,16 @@ module SyntaxTree
               when /\A[\n]+/
                 # whitespace
                 line += $&.count("\n")
-              when /\Ado\s*.*?\s*%>/
+              when /\Ado\b(\s*\|[\w\s,]+\|)?\s*-?%>/
                 enum.yield :erb_do_close, $&, index, line
                 state.pop
               when /\A-?%>/
                 enum.yield :erb_close, $&, index, line
                 state.pop
+              when /\A\w*\b/
+                # Split by word boundary while parsing the code
+                # This allows us to separate what_to_do vs do
+                enum.yield :erb_code, $&, index, line
               else
                 enum.yield :erb_code, source[index], index, line
                 index += 1
@@ -181,7 +185,7 @@ module SyntaxTree
                 line += $&.count("\n")
               when /\A\"/
                 # the end of a quoted string
-                enum.yield :string_close, $&, index, line
+                enum.yield :string_close_double_quote, $&, index, line
                 state.pop
               when /\A<%[=]?/
                 # the beginning of an ERB tag
@@ -239,7 +243,7 @@ module SyntaxTree
                 state << :erb
               when /\A"/
                 # the beginning of a string
-                enum.yield :string_open, $&, index, line
+                enum.yield :string_open_double_quote, $&, index, line
                 state << :string
               else
                 raise ParseError,
@@ -462,17 +466,22 @@ module SyntaxTree
           maybe { consume(:erb_if) } || maybe { consume(:erb_unless) } ||
             maybe { consume(:erb_elsif) } || maybe { consume(:erb_else) } ||
             maybe { consume(:erb_end) }
-        content = many { consume(:erb_code) }
-        closing_tag =
-          atleast do
-            maybe { consume(:erb_close) } || maybe { parse_erb_do_close }
-          end
+
+        content = parse_until_erb_close
+        closing_tag = content.pop
+
+        unless closing_tag.is_a?(ErbDoClose) || closing_tag.is_a?(ErbClose)
+          raise(
+            ParseError,
+            "Found no matching closing tag for the erb-tag at #{opening_tag.location}"
+          )
+        end
 
         erb_node =
           ErbNode.new(
             opening_tag: opening_tag,
             keyword: keyword,
-            content: content.map(&:value).join,
+            content: content,
             closing_tag: closing_tag,
             location: opening_tag.location.to(closing_tag.location)
           )
@@ -486,7 +495,7 @@ module SyntaxTree
           parse_erb_end(erb_node)
         else
           if closing_tag.is_a?(ErbDoClose)
-            elements = parse_until_erb(classes: [ErbEnd])
+            elements = maybe { parse_until_erb(classes: [ErbEnd]) } || []
             erb_end = elements.pop
 
             unless erb_end.is_a?(ErbEnd)
@@ -507,26 +516,45 @@ module SyntaxTree
         end
       end
 
+      def parse_until_erb_close
+        items = []
+
+        loop do
+          result =
+            maybe { parse_erb_do_close } || maybe { parse_erb_close } ||
+              maybe { consume(:erb_code) }
+          items << result
+
+          break if result.is_a?(ErbDoClose) || result.is_a?(ErbClose)
+        end
+
+        items
+      end
+
       def parse_blank_line
         blank_line = consume(:blank_line)
 
         CharData.new(value: blank_line, location: blank_line.location)
       end
 
-      def parse_erb_do_close
-        token = consume(:erb_do_close)
+      def parse_erb_close
+        closing = consume(:erb_close)
 
-        closing = token.value.match(/-?%>$/).to_s
-
-        ErbDoClose.new(
-          location: token.location,
-          value: token.value.gsub(closing, ""),
-          closing: closing
-        )
+        ErbClose.new(location: closing.location, closing: closing)
       end
 
-      def parse_string
-        opening = consume(:string_open)
+      def parse_erb_do_close
+        closing = consume(:erb_do_close)
+
+        ErbDoClose.new(location: closing.location, closing: closing)
+      end
+
+      def parse_html_string
+        opening =
+          atleast do
+            maybe { consume(:string_open_double_quote) } ||
+              maybe { consume(:string_open_single_quote) }
+          end
         contents =
           many do
             atleast do
@@ -534,9 +562,15 @@ module SyntaxTree
                 maybe { parse_erb_tag }
             end
           end
-        closing = consume(:string_close)
 
-        ErbString.new(
+        closing =
+          if opening.type == :string_open_double_quote
+            consume(:string_close_double_quote)
+          else
+            consume(:string_close_single_quote)
+          end
+
+        HtmlString.new(
           opening: opening,
           contents: contents,
           closing: closing,
@@ -556,7 +590,7 @@ module SyntaxTree
             location: key.location
           )
         else
-          value = parse_string
+          value = parse_html_string
 
           HtmlAttribute.new(
             key: key,

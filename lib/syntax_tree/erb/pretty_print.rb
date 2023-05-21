@@ -106,6 +106,11 @@ module SyntaxTree
         visit_node("attribute", node)
       end
 
+      # Visit an HtmlString node.
+      def visit_html_string(node)
+        visit_node("html_string", node)
+      end
+
       # Visit an ErbString node.
       def visit_erb_string(node)
         visit_node("erb_string", node)
@@ -114,6 +119,10 @@ module SyntaxTree
       # Visit a CharData node.
       def visit_char_data(node)
         visit_node("char_data", node)
+      end
+
+      def visit_erb_close(node)
+        visit_node("erb_close", node)
       end
 
       def visit_erb_do_close(node)

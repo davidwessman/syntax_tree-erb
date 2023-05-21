@@ -50,6 +50,9 @@ module SyntaxTree
       # Visit an ErbNode node.
       alias visit_erb visit_child_nodes
 
+      # Visit an HtmlString node.
+      alias visit_html_string visit_child_nodes
+
       # Visit an ErbString node.
       alias visit_erb_string visit_child_nodes
     end
