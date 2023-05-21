@@ -439,40 +439,6 @@ module SyntaxTree
       end
     end
 
-    class ErbString < Node
-      attr_reader :opening, :contents, :closing, :location
-
-      def initialize(opening:, contents:, closing:, location:)
-        @opening = opening
-        @contents = contents
-        @closing = closing
-        @location = location
-      end
-
-      def accept(visitor)
-        visitor.visit_erb_string(self)
-      end
-
-      def child_nodes
-        [*contents]
-      end
-
-      def value
-        "\"#{contents.map(&:value).join}\""
-      end
-
-      alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        {
-          opening: opening,
-          contents: contents,
-          closing: closing,
-          location: location
-        }
-      end
-    end
-
     # An HtmlString can include ERB-tags
     class HtmlString < Node
       attr_reader :opening, :contents, :closing, :location

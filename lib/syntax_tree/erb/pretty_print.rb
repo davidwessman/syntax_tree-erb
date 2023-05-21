@@ -111,11 +111,6 @@ module SyntaxTree
         visit_node("html_string", node)
       end
 
-      # Visit an ErbString node.
-      def visit_erb_string(node)
-        visit_node("erb_string", node)
-      end
-
       # Visit a CharData node.
       def visit_char_data(node)
         visit_node("char_data", node)

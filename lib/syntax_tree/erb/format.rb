@@ -189,15 +189,6 @@ module SyntaxTree
         end
       end
 
-      # Visit an ErbString node.
-      def visit_erb_string(node)
-        q.group do
-          visit(node.opening)
-          q.seplist(node.contents, -> { "" }) { |child_node| visit(child_node) }
-          visit(node.closing)
-        end
-      end
-
       # Visit a CharData node.
       def visit_char_data(node)
         lines = node.value.value.strip.split("\n")
