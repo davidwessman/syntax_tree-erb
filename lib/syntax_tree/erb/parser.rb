@@ -637,11 +637,10 @@ module SyntaxTree
           many do
             atleast do
               maybe { consume(:string_open_double_quote) } ||
-              maybe { consume(:string_open_single_quote) } ||
-              maybe { consume(:string_close_double_quote) } ||
-              maybe { consume(:string_close_single_quote) } ||
-              maybe { consume(:text) } ||
-              maybe { consume(:whitespace) }
+                maybe { consume(:string_open_single_quote) } ||
+                maybe { consume(:string_close_double_quote) } ||
+                maybe { consume(:string_close_single_quote) } ||
+                maybe { consume(:text) } || maybe { consume(:whitespace) }
             end
           end
 
