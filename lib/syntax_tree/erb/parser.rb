@@ -23,19 +23,6 @@ module SyntaxTree
       class MissingTokenError < ParseError
       end
 
-      class ErbKeywordError < ParseError
-      end
-
-      # This error is thrown when an erb-tag with a do-statement is parsed.
-      # It is used to control the flow of the parser.
-      class ErbDoTokenError < ParseError
-        attr_reader(:tag)
-
-        def initialize(tag:)
-          @tag = tag
-        end
-      end
-
       attr_reader :source, :tokens
 
       def initialize(source)
@@ -330,13 +317,9 @@ module SyntaxTree
         items = []
 
         loop do
-          begin
-            result = parse_any_tag
-            items << result
-            break if classes.any? { |cls| result.is_a?(cls) }
-          rescue ErbKeywordError
-            break
-          end
+          result = parse_any_tag
+          items << result
+          break if classes.any? { |cls| result.is_a?(cls) }
         end
 
         items
@@ -379,7 +362,21 @@ module SyntaxTree
 
         if opening_tag.closing.value == ">"
           content = many { parse_any_tag }
-          closing_tag = parse_html_closing_tag
+          closing_tag = maybe { parse_html_closing_tag }
+
+          if closing_tag.nil?
+            raise(
+              ParseError,
+              "Missing closing tag for <#{opening_tag.name.value}> at #{opening_tag.location}"
+            )
+          end
+
+          if closing_tag.name.value != opening_tag.name.value
+            raise(
+              ParseError,
+              "Expected closing tag for <#{opening_tag.name.value}> but got <#{closing_tag.name.value}> at #{closing_tag.location}"
+            )
+          end
 
           HtmlNode.new(
             opening_tag: opening_tag,
@@ -404,7 +401,10 @@ module SyntaxTree
         erb_tag = elements.pop
 
         unless erb_tag.is_a?(ErbControl) || erb_tag.is_a?(ErbEnd)
-          raise(ErbKeywordError, "Found no matching tag to the if-tag")
+          raise(
+            ParseError,
+            "Found no matching tag to the if-tag at #{erb_node.location}"
+          )
         end
 
         case erb_node.keyword.type
@@ -431,7 +431,10 @@ module SyntaxTree
         erb_end = elements.pop
 
         unless erb_end.is_a?(ErbEnd)
-          raise(ErbKeywordError, "Found no matching end-tag for the else-tag")
+          raise(
+            ParseError,
+            "Found no matching end-tag for the else-tag at #{erb_node.location}"
+          )
         end
 
         ErbElse.new(erb_node: erb_node, elements: elements, consequent: erb_end)
@@ -487,7 +490,10 @@ module SyntaxTree
             erb_end = elements.pop
 
             unless erb_end.is_a?(ErbEnd)
-              raise(ErbKeywordError, "Found no matching end-tag for the do-tag")
+              raise(
+                ParseError,
+                "Found no matching end-tag for the do-tag at #{erb_node.location}"
+              )
             end
 
             ErbBlock.new(

@@ -35,9 +35,21 @@ module SyntaxTree
       assert_nil(parsed.location)
     end
 
-    def test_invalid_file
-      assert_raises(SyntaxTree::ERB::Parser::ErbKeywordError) do
+    def test_missing_erb_end_tag
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
         ERB.parse("<% if no_end_tag %>")
+      end
+    end
+
+    def test_missing_html_end_tag
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<h1>Hello World")
+      end
+    end
+
+    def test_incorrect_html_end_tag
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<h1>Hello World</h2>")
       end
     end
 

@@ -34,6 +34,14 @@ module SyntaxTree
       def <=>(other)
         start_char <=> other.start_char
       end
+
+      def to_s
+        if start_line == end_line
+          "line #{start_line}, char #{start_char}..#{end_char}"
+        else
+          "line #{start_line},char #{start_char} to line #{end_line}, char #{end_char}"
+        end
+      end
     end
 
     # A parent node that contains a bit of shared functionality.
