@@ -183,9 +183,9 @@ module SyntaxTree
       # Visit a HtmlString node.
       def visit_html_string(node)
         q.group do
-          visit(node.opening)
+          q.text("\"")
           q.seplist(node.contents, -> { "" }) { |child_node| visit(child_node) }
-          visit(node.closing)
+          q.text("\"")
         end
       end
 

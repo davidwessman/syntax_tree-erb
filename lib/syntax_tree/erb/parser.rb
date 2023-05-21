@@ -106,9 +106,13 @@ module SyntaxTree
                 enum.yield :open, $&, index, line
                 state << :inside
               when /\A"/
-                # the beginning of a string
+                # the beginning of a double quoted string
                 enum.yield :string_open_double_quote, $&, index, line
-                state << :string
+                state << :string_double_quote
+              when /\A'/
+                # the beginning of a double quoted string
+                enum.yield :string_open_single_quote, $&, index, line
+                state << :string_single_quote
               when /\A[^<]+/
                 # plain text content
                 # abc
@@ -177,7 +181,30 @@ module SyntaxTree
                 index += 1
                 next
               end
-            in :string
+            in :string_single_quote
+              case source[index..]
+              when /\A(?: |\t|\n|\r\n)+/m
+                # whitespace
+                enum.yield :whitespace, $&, index, line
+                line += $&.count("\n")
+              when /\A\'/
+                # the end of a quoted string
+                enum.yield :string_close_single_quote, $&, index, line
+                state.pop
+              when /\A<%[=]?/
+                # the beginning of an ERB tag
+                # <%
+                enum.yield :erb_open, $&, index, line
+                state << :erb
+              when /\A[^<']+/
+                # plain text content
+                # abc
+                enum.yield :text, $&, index, line
+              else
+                raise ParseError,
+                      "Unexpected character in string at #{index}: #{source[index]}"
+              end
+            in :string_double_quote
               case source[index..]
               when /\A(?: |\t|\n|\r\n)+/m
                 # whitespace
@@ -244,7 +271,11 @@ module SyntaxTree
               when /\A"/
                 # the beginning of a string
                 enum.yield :string_open_double_quote, $&, index, line
-                state << :string
+                state << :string_double_quote
+              when /\A'/
+                # the beginning of a string
+                enum.yield :string_open_single_quote, $&, index, line
+                state << :string_single_quote
               else
                 raise ParseError,
                       "Unexpected character at #{index}: #{source[index]}"
@@ -605,7 +636,12 @@ module SyntaxTree
         values =
           many do
             atleast do
-              maybe { consume(:text) } || maybe { consume(:whitespace) }
+              maybe { consume(:string_open_double_quote) } ||
+              maybe { consume(:string_open_single_quote) } ||
+              maybe { consume(:string_close_double_quote) } ||
+              maybe { consume(:string_close_single_quote) } ||
+              maybe { consume(:text) } ||
+              maybe { consume(:whitespace) }
             end
           end
 
