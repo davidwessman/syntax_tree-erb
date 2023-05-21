@@ -35,5 +35,16 @@ module SyntaxTree
       parsed = ERB.parse("<!doctype html>")
       assert_instance_of(SyntaxTree::ERB::Doctype, parsed.elements.first)
     end
+
+    def test_html_comment
+      source = "<!-- This is a HTML-comment -->\n"
+      parsed = ERB.parse(source)
+      elements = parsed.elements
+      assert_equal(1, elements.size)
+      assert_instance_of(SyntaxTree::ERB::HtmlComment, elements.first)
+
+      formatted = ERB.format(source)
+      assert_equal(source, formatted)
+    end
   end
 end

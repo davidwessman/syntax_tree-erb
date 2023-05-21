@@ -189,6 +189,10 @@ module SyntaxTree
         end
       end
 
+      def visit_html_comment(node)
+        visit(node.token)
+      end
+
       # Visit a CharData node.
       def visit_char_data(node)
         lines = node.value.value.strip.split("\n")

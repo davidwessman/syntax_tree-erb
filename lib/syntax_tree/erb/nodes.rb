@@ -453,6 +453,29 @@ module SyntaxTree
       end
     end
 
+    class HtmlComment < Node
+      attr_reader :token, :location
+
+      def initialize(token:, location:)
+        @token = token
+        @location = location
+      end
+
+      def accept(visitor)
+        visitor.visit_html_comment(self)
+      end
+
+      def child_nodes
+        []
+      end
+
+      alias deconstruct child_nodes
+
+      def deconstruct_keys(keys)
+        { token: token, location: location }
+      end
+    end
+
     # A CharData contains either plain text or whitespace within an element.
     # It wraps a single token value.
     class CharData < Node

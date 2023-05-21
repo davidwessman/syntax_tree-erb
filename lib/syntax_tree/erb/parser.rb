@@ -50,9 +50,9 @@ module SyntaxTree
 
       def parse_any_tag
         atleast do
-          maybe { parse_erb_tag } || maybe { consume(:erb_comment) } ||
-            maybe { parse_html_element } || maybe { parse_blank_line } ||
-            maybe { parse_chardata }
+          maybe { parse_html_comment } || maybe { parse_erb_tag } ||
+            maybe { consume(:erb_comment) } || maybe { parse_html_element } ||
+            maybe { parse_blank_line } || maybe { parse_chardata }
         end
       end
 
@@ -77,7 +77,7 @@ module SyntaxTree
               when /\A<!--(.|\r?\n)*?-->/m
                 # comments
                 # <!-- this is a comment -->
-                enum.yield :comment, $&, index, line
+                enum.yield :html_comment, $&, index, line
                 line += $&.count("\n")
               when /\A<!DOCTYPE/, /\A<!doctype/
                 # document type tags
@@ -670,6 +670,12 @@ module SyntaxTree
           closing: closing,
           location: opening.location.to(closing.location)
         )
+      end
+
+      def parse_html_comment
+        comment = consume(:html_comment)
+
+        HtmlComment.new(token: comment, location: comment.location)
       end
     end
   end

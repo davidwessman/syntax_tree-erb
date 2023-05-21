@@ -129,6 +129,10 @@ module SyntaxTree
         visit_node("doctype", node)
       end
 
+      def visit_html_comment(node)
+        visit_node("html_comment", node)
+      end
+
       private
 
       # A generic visit node function for how we pretty print nodes.
