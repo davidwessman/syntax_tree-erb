@@ -291,26 +291,9 @@ module SyntaxTree
       end
     end
 
-    class ErbDoClose < Node
-      attr_reader :location, :closing
-
-      def initialize(location:, closing:)
-        @location = location
-        @closing = closing
-      end
-
+    class ErbDoClose < ErbClose
       def accept(visitor)
         visitor.visit_erb_do_close(self)
-      end
-
-      def child_nodes
-        []
-      end
-
-      alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        { location: location, closing: closing }
       end
     end
 
@@ -439,7 +422,7 @@ module SyntaxTree
       end
     end
 
-    # An HtmlString can include ERB-tags
+    # A HtmlString can include ERB-tags
     class HtmlString < Node
       attr_reader :opening, :contents, :closing, :location
 

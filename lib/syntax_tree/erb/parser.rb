@@ -470,7 +470,7 @@ module SyntaxTree
         content = parse_until_erb_close
         closing_tag = content.pop
 
-        unless closing_tag.is_a?(ErbDoClose) || closing_tag.is_a?(ErbClose)
+        if !closing_tag.is_a?(ErbClose)
           raise(
             ParseError,
             "Found no matching closing tag for the erb-tag at #{opening_tag.location}"
@@ -525,7 +525,7 @@ module SyntaxTree
               maybe { consume(:erb_code) }
           items << result
 
-          break if result.is_a?(ErbDoClose) || result.is_a?(ErbClose)
+          break if result.is_a?(ErbClose)
         end
 
         items

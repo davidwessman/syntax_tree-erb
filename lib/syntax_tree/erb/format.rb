@@ -180,7 +180,7 @@ module SyntaxTree
         end
       end
 
-      # Visit an HtmlString node.
+      # Visit a HtmlString node.
       def visit_html_string(node)
         q.group do
           visit(node.opening)

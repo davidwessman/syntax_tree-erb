@@ -106,7 +106,7 @@ module SyntaxTree
         visit_node("attribute", node)
       end
 
-      # Visit an HtmlString node.
+      # Visit a HtmlString node.
       def visit_html_string(node)
         visit_node("html_string", node)
       end
