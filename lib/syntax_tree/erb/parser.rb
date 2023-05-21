@@ -164,7 +164,8 @@ module SyntaxTree
             in :erb
               case source[index..]
               when /\A[\n]+/
-                # whitespace
+                # newlines
+                enum.yield :erb_code, $&, index, line
                 line += $&.count("\n")
               when /\Ado\b(\s*\|[\w\s,]+\|)?\s*-?%>/
                 enum.yield :erb_do_close, $&, index, line
@@ -438,7 +439,7 @@ module SyntaxTree
         unless erb_tag.is_a?(ErbControl) || erb_tag.is_a?(ErbEnd)
           raise(
             ParseError,
-            "Found no matching tag to the if-tag at #{erb_node.location}"
+            "Found no matching erb-tag to the if-tag at #{erb_node.location}"
           )
         end
 
