@@ -22,5 +22,11 @@ module SyntaxTree
         ERB.parse("<% no_end_tag do %>")
       end
     end
+
+    def test_erb_code_with_non_ascii
+      parsed = ERB.parse("<% \"Påäööööö\" %>")
+      assert_equal(1, parsed.elements.size)
+      assert_instance_of(SyntaxTree::ERB::ErbNode, parsed.elements.first)
+    end
   end
 end

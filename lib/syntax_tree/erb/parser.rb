@@ -173,7 +173,7 @@ module SyntaxTree
               when /\A-?%>/
                 enum.yield :erb_close, $&, index, line
                 state.pop
-              when /\A\w*\b/
+              when /\A[\p{L}\w]*\b/
                 # Split by word boundary while parsing the code
                 # This allows us to separate what_to_do vs do
                 enum.yield :erb_code, $&, index, line
