@@ -115,12 +115,16 @@ module SyntaxTree
       end
 
       def visit_erb_content(node)
-        formatter =
-          SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
-        formatter.format(node.value.statements)
-        formatter.flush
-
-        rows = formatter.output.join.split("\n")
+        rows =
+          if node.value.is_a?(String)
+            node.value.split("\n")
+          else
+            formatter =
+              SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
+            formatter.format(node.value.statements)
+            formatter.flush
+            formatter.output.join.split("\n")
+          end
 
         if rows.size > 1
           q.group do

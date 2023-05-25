@@ -366,17 +366,21 @@ module SyntaxTree
     end
 
     class ErbContent < Node
-      attr_reader(:value, :parsed)
+      attr_reader(:value, :unparsed_value)
 
       def initialize(value:)
-        @value = value
+        @unparsed_value = value
         begin
-          @value = SyntaxTree.parse(@value)
-          @parsed = true
+          # We cannot handle IfNode inside a ErbContent
+          @value =
+            if SyntaxTree.search(value, "IfNode").any?
+              value&.lstrip&.rstrip
+            else
+              SyntaxTree.parse(value)
+            end
         rescue SyntaxTree::Parser::ParseError
           # Removes leading and trailing whitespace
-          @value = @value&.lstrip&.rstrip
-          @parsed = false
+          @value = value&.lstrip&.rstrip
         end
       end
 

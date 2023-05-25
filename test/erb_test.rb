@@ -28,5 +28,16 @@ module SyntaxTree
       assert_equal(1, parsed.elements.size)
       assert_instance_of(SyntaxTree::ERB::ErbNode, parsed.elements.first)
     end
+
+    def test_long_if_statement
+      source =
+        "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first %>\n"
+
+      formatted = ERB.format(source)
+      formatted_again = ERB.format(formatted)
+
+      assert_equal(source, formatted)
+      assert_equal(source, formatted_again)
+    end
   end
 end
