@@ -571,10 +571,22 @@ module SyntaxTree
 
       def parse_html_string
         opening =
-          atleast do
-            maybe { consume(:string_open_double_quote) } ||
-              maybe { consume(:string_open_single_quote) }
-          end
+          maybe { consume(:string_open_double_quote) } ||
+            maybe { consume(:string_open_single_quote) }
+
+        if opening.nil?
+          value = consume(:name)
+
+          return(
+            HtmlString.new(
+              opening: nil,
+              contents: [value],
+              closing: nil,
+              location: value.location
+            )
+          )
+        end
+
         contents =
           many do
             atleast do

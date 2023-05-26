@@ -72,5 +72,22 @@ module SyntaxTree
         ERB.parse("<#br />")
       end
     end
+
+    def test_html_attribute_without_quotes
+      source = "<div class=card>Hello World</div>"
+      parsed = ERB.parse(source)
+      elements = parsed.elements
+
+      assert_equal(1, elements.size)
+      assert_instance_of(SyntaxTree::ERB::HtmlNode, elements.first)
+      assert_equal(1, elements.first.opening_tag.attributes.size)
+
+      attribute = elements.first.opening_tag.attributes.first
+      assert_equal("class", attribute.key.value)
+      assert_equal("card", attribute.value.contents.first.value)
+
+      formatted = ERB.format(source)
+      assert_equal("<div class=\"card\">Hello World</div>\n", formatted)
+    end
   end
 end
