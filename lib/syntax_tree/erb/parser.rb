@@ -105,14 +105,6 @@ module SyntaxTree
                 # <
                 enum.yield :open, $&, index, line
                 state << :inside
-              when /\A"/
-                # the beginning of a double quoted string
-                enum.yield :string_open_double_quote, $&, index, line
-                state << :string_double_quote
-              when /\A'/
-                # the beginning of a double quoted string
-                enum.yield :string_open_single_quote, $&, index, line
-                state << :string_single_quote
               when /\A[^<]+/
                 # plain text content
                 # abc

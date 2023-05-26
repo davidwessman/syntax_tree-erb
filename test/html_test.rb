@@ -46,5 +46,19 @@ module SyntaxTree
       formatted = ERB.format(source)
       assert_equal(source, formatted)
     end
+
+    def test_html_within_quotes
+      source =
+        "<p>This is our text \"<strong><%= @object.quote %></strong>\"</p>"
+      parsed = ERB.parse(source)
+      elements = parsed.elements
+
+      assert_equal(1, elements.size)
+      assert_instance_of(SyntaxTree::ERB::HtmlNode, elements.first)
+      content = elements.first.content
+
+      assert_equal("This is our text \"", content.first.value.value)
+      assert_equal("\"", content.last.value.value)
+    end
   end
 end
