@@ -60,5 +60,17 @@ module SyntaxTree
       assert_equal("This is our text \"", content.first.value.value)
       assert_equal("\"", content.last.value.value)
     end
+
+    def test_html_tag_names
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<@br />")
+      end
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<:br />")
+      end
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<#br />")
+      end
+    end
   end
 end

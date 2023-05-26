@@ -7,5 +7,7 @@
   >
   </card-header>
 
-  <card-body :content="<%= @content %>" @click="doThis"></card-body>
+  <card-body :content="<%= @content %>" @click="doThis">
+    <template #button-content>Hello</template>
+  </card-body>
 </div>

@@ -3,14 +3,6 @@
 module SyntaxTree
   module ERB
     class Parser
-      NAME_START =
-        "[@:a-zA-Z_\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}]"
-
-      NAME_CHAR =
-        "[#{NAME_START}-\\.\\d\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}]"
-
-      NAME = "#{NAME_START}(?:#{NAME_CHAR})*"
-
       # This is the parent class of any kind of errors that will be raised by
       # the parser.
       class ParseError < StandardError
@@ -252,9 +244,10 @@ module SyntaxTree
                 # an equals sign
                 # =
                 enum.yield :equals, $&, index, line
-              when /\A#{NAME}/
-                # a name
-                # abc
+              when /\A[@:#]*[\w-]+\b/
+                # a name for an element or an attribute
+                # strong, vue-component-kebab, VueComponentPascal
+                # abc, #abc, @abc, :abc
                 enum.yield :name, $&, index, line
               when /\A<%/
                 # the beginning of an ERB tag
@@ -356,6 +349,9 @@ module SyntaxTree
       def parse_html_opening_tag
         opening = consume(:open)
         name = consume(:name)
+        if name.value =~ /\A[@:#]/
+          raise ParseError, "Invalid html-tag name #{name}"
+        end
         attributes = many { parse_html_attribute }
 
         closing =
