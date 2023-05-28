@@ -38,9 +38,6 @@ module SyntaxTree
       # Visit an HtmlNode::ClosingTag node.
       alias visit_closing_tag visit_child_nodes
 
-      # Visit a Reference node.
-      alias visit_reference visit_child_nodes
-
       # Visit an Attribute node.
       alias visit_attribute visit_child_nodes
 

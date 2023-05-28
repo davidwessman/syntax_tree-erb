@@ -19,6 +19,10 @@ module SyntaxTree
         visit_node("document", node)
       end
 
+      def visit_block(node)
+        visit_node(node.class.to_s, node)
+      end
+
       # Visit an HtmlNode.
       def visit_html(node)
         visit_node("html", node)
@@ -63,10 +67,10 @@ module SyntaxTree
           q.text("(erb_block")
           q.nest(2) do
             q.breakable
-            q.seplist(node.child_nodes) { |child_node| visit(child_node) }
+            q.seplist(node.elements) { |child_node| visit(child_node) }
           end
           q.breakable
-          visit(node.consequent)
+          visit(node.closing)
           q.breakable("")
           q.text(")")
         end
@@ -75,13 +79,13 @@ module SyntaxTree
       def visit_erb_if(node, key = "erb_if")
         q.group do
           q.text("(")
-          visit(node.keyword) if node.keyword
+          visit(node.opening)
           q.nest(2) do
             q.breakable()
             q.seplist(node.child_nodes) { |child_node| visit(child_node) }
           end
           q.breakable
-          visit(node.consequent)
+          visit(node.closing)
           q.breakable("")
           q.text(")")
         end
@@ -94,11 +98,6 @@ module SyntaxTree
       # Visit an ErbContent node.
       def visit_erb_content(node)
         q.text(node.value)
-      end
-
-      # Visit a Reference node.
-      def visit_reference(node)
-        visit_node("reference", node)
       end
 
       # Visit an Attribute node.

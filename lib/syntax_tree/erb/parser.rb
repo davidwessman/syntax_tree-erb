@@ -368,7 +368,7 @@ module SyntaxTree
         )
       end
 
-      def parse_html_closing_tag
+      def parse_html_closing
         opening = consume(:slash_open)
         name = consume(:name)
         closing = consume(:close)
@@ -382,39 +382,34 @@ module SyntaxTree
       end
 
       def parse_html_element
-        opening_tag = parse_html_opening_tag
+        opening = parse_html_opening_tag
 
-        if opening_tag.closing.value == ">"
-          content = many { parse_any_tag }
-          closing_tag = maybe { parse_html_closing_tag }
+        if opening.closing.value == ">"
+          elements = many { parse_any_tag }
+          closing = maybe { parse_html_closing }
 
-          if closing_tag.nil?
+          if closing.nil?
             raise(
               ParseError,
-              "Missing closing tag for <#{opening_tag.name.value}> at #{opening_tag.location}"
+              "Missing closing tag for <#{opening.name.value}> at #{opening.location}"
             )
           end
 
-          if closing_tag.name.value != opening_tag.name.value
+          if closing.name.value != opening.name.value
             raise(
               ParseError,
-              "Expected closing tag for <#{opening_tag.name.value}> but got <#{closing_tag.name.value}> at #{closing_tag.location}"
+              "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}> at #{closing.location}"
             )
           end
 
           HtmlNode.new(
-            opening_tag: opening_tag,
-            content: content,
-            closing_tag: closing_tag,
-            location: opening_tag.location.to(closing_tag.location)
+            opening: opening,
+            elements: elements,
+            closing: closing,
+            location: opening.location.to(closing.location)
           )
         else
-          HtmlNode.new(
-            opening_tag: opening_tag,
-            content: nil,
-            closing_tag: nil,
-            location: opening_tag.location
-          )
+          HtmlNode.new(opening: opening, location: opening.location)
         end
       end
 
@@ -433,18 +428,25 @@ module SyntaxTree
 
         case erb_node.keyword.type
         when :erb_if
-          ErbIf.new(erb_node: erb_node, elements: elements, consequent: erb_tag)
+          ErbIf.new(
+            opening: erb_node,
+            elements: elements,
+            closing: erb_tag,
+            location: erb_node.location.to(erb_tag.location)
+          )
         when :erb_unless
           ErbUnless.new(
-            erb_node: erb_node,
+            opening: erb_node,
             elements: elements,
-            consequent: erb_tag
+            closing: erb_tag,
+            location: erb_node.location.to(erb_tag.location)
           )
         when :erb_elsif
           ErbElsif.new(
-            erb_node: erb_node,
+            opening: erb_node,
             elements: elements,
-            consequent: erb_tag
+            closing: erb_tag,
+            location: erb_node.location.to(erb_tag.location)
           )
         end
       end
@@ -461,7 +463,12 @@ module SyntaxTree
           )
         end
 
-        ErbElse.new(erb_node: erb_node, elements: elements, consequent: erb_end)
+        ErbElse.new(
+          opening: erb_node,
+          elements: elements,
+          closing: erb_end,
+          location: erb_node.location.to(erb_end.location)
+        )
       end
 
       def parse_erb_end(erb_node)
@@ -472,12 +479,6 @@ module SyntaxTree
           closing_tag: erb_node.closing_tag,
           location: erb_node.location
         )
-      end
-
-      def parse_ruby_or_string(content)
-        SyntaxTree.parse(content).statements
-      rescue SyntaxTree::Parser::ParseError
-        content
       end
 
       def parse_erb_tag
@@ -526,9 +527,10 @@ module SyntaxTree
             end
 
             ErbBlock.new(
-              erb_node: erb_node,
+              opening: erb_node,
               elements: elements,
-              consequent: erb_end
+              closing: erb_end,
+              location: erb_node.location.to(erb_end.location)
             )
           else
             erb_node

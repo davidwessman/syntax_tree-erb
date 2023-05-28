@@ -3,7 +3,7 @@
 require "test_helper"
 
 module SyntaxTree
-  class FormattingTest < TestCase
+  class FormattingTest < Minitest::Test
     def test_block
       assert_formatting("block")
     end
@@ -26,6 +26,29 @@ module SyntaxTree
 
     def test_layout
       assert_formatting("layout")
+    end
+
+    private
+
+    def assert_formatting(name)
+      directory = File.expand_path("fixture", __dir__)
+      unformatted_file = File.join(directory, "#{name}_unformatted.html.erb")
+      formatted_file = File.join(directory, "#{name}_formatted.html.erb")
+
+      expected = SyntaxTree::ERB.read(formatted_file)
+      formatted = SyntaxTree::ERB.format(SyntaxTree::ERB.read(unformatted_file))
+
+      if (expected != formatted)
+        puts("Failed to format #{name}, see ./tmp/#{name}_failed.html.erb")
+        Dir.mkdir("./tmp") unless Dir.exist?("./tmp")
+        File.write("./tmp/#{name}_failed.html.erb", formatted)
+      end
+
+      assert_equal(formatted, expected)
+
+      # Check that pretty_print works
+      output = SyntaxTree::ERB.parse(expected).pretty_inspect
+      refute_predicate(output, :empty?)
     end
   end
 end

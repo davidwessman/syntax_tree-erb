@@ -25,23 +25,43 @@ module SyntaxTree
         q.breakable(force: true)
       end
 
-      def visit_html(node)
-        q.group do
-          visit(node.opening_tag)
+      def visit_block(node)
+        visit(node.opening)
 
-          if node.content&.any?
-            q.indent do
-              q.breakable("")
-              q.seplist(
-                node.content,
-                -> { q.breakable(force: true) }
-              ) { |child_node| visit(child_node) }
-            end
+        if node.elements.any?
+          q.indent do
+            q.breakable("")
+            q.seplist(
+              node.elements,
+              -> { q.breakable(force: true) }
+            ) { |child_node| visit(child_node) }
           end
-
-          q.breakable("")
-          visit(node.closing_tag)
         end
+
+        if node.closing
+          q.breakable("")
+          visit(node.closing)
+        end
+      end
+
+      def visit_html(node)
+        visit_block(node)
+      end
+
+      def visit_erb_block(node)
+        visit_block(node)
+      end
+
+      def visit_erb_if(node)
+        visit_block(node)
+      end
+
+      def visit_erb_elsif(node)
+        visit_block(node)
+      end
+
+      def visit_erb_else(node)
+        visit_block(node)
       end
 
       # Visit an ErbNode node.
@@ -58,51 +78,12 @@ module SyntaxTree
         visit(node.closing_tag)
       end
 
-      def visit_erb_block(node)
-        visit(node.erb_node)
-
-        if node.elements.any?
-          q.group do
-            q.indent do
-              q.breakable(force: true)
-              q.seplist(
-                node.elements,
-                -> { q.breakable(force: true) }
-              ) { |child_node| visit(child_node) }
-            end
-          end
-        end
-
-        q.breakable("")
-        visit(node.consequent)
-      end
-
       def visit_erb_do_close(node)
         visit(node.closing)
       end
 
       def visit_erb_close(node)
         visit(node.closing)
-      end
-
-      # Visit an ErbIf node.
-      def visit_erb_if(node)
-        q.group do
-          visit(node.erb_node)
-
-          if node.elements.any?
-            q.indent do
-              q.breakable(force: true)
-              q.seplist(
-                node.elements,
-                -> { q.breakable(force: true) }
-              ) { |child_node| visit(child_node) }
-            end
-          end
-
-          q.breakable("")
-          visit(node.consequent)
-        end
       end
 
       # Visit an ErbEnd node.
@@ -170,11 +151,6 @@ module SyntaxTree
         end
       end
 
-      # Visit a Reference node.
-      def visit_reference(node)
-        visit(node.value)
-      end
-
       # Visit an Attribute node.
       def visit_attribute(node)
         q.group do
@@ -216,18 +192,6 @@ module SyntaxTree
           visit(node.name)
 
           visit(node.closing)
-        end
-      end
-
-      private
-
-      # Format a text by splitting nicely at newlines and spaces.
-      def format_text(q, value)
-        sep_line = -> { q.breakable(force: true, indent: false) }
-        sep_word = -> { q.group { q.breakable } }
-
-        q.seplist(value.strip.split("\n"), sep_line) do |line|
-          q.seplist(line.split(/\b(?: +)\b/), sep_word) { |word| q.text(word) }
         end
       end
     end

@@ -3,7 +3,7 @@
 require "test_helper"
 
 module SyntaxTree
-  class ErbTest < TestCase
+  class ErbTest < Minitest::Test
     def test_empty_file
       parsed = ERB.parse("")
       assert_instance_of(SyntaxTree::ERB::Document, parsed)
@@ -38,6 +38,15 @@ module SyntaxTree
 
       assert_equal(source, formatted)
       assert_equal(source, formatted_again)
+    end
+
+    def test_text_erb_text
+      assert_equal(
+        ERB.format(
+          "<div>This is some text <%= variable %> and the special value after</div>"
+        ),
+        "<div>\n  This is some text\n  <%= variable %>\n  and the special value after\n</div>\n"
+      )
     end
   end
 end

@@ -55,10 +55,10 @@ module SyntaxTree
 
       assert_equal(1, elements.size)
       assert_instance_of(SyntaxTree::ERB::HtmlNode, elements.first)
-      content = elements.first.content
+      elements = elements.first.elements
 
-      assert_equal("This is our text \"", content.first.value.value)
-      assert_equal("\"", content.last.value.value)
+      assert_equal("This is our text \"", elements.first.value.value)
+      assert_equal("\"", elements.last.value.value)
     end
 
     def test_html_tag_names
@@ -80,14 +80,14 @@ module SyntaxTree
 
       assert_equal(1, elements.size)
       assert_instance_of(SyntaxTree::ERB::HtmlNode, elements.first)
-      assert_equal(1, elements.first.opening_tag.attributes.size)
+      assert_equal(1, elements.first.opening.attributes.size)
 
-      attribute = elements.first.opening_tag.attributes.first
+      attribute = elements.first.opening.attributes.first
       assert_equal("class", attribute.key.value)
       assert_equal("card", attribute.value.contents.first.value)
 
       formatted = ERB.format(source)
-      assert_equal("<div class=\"card\">Hello World</div>\n", formatted)
+      assert_equal("<div class=\"card\">\n  Hello World\n</div>\n", formatted)
     end
   end
 end

@@ -110,11 +110,44 @@ module SyntaxTree
       end
     end
 
+    # This is a base class for a block that contains:
+    # - an opening
+    # - optional elements
+    # - optional closing
+    class Block < Node
+      attr_reader(:opening, :elements, :closing, :location)
+      def initialize(opening:, location:, elements: nil, closing: nil)
+        @opening = opening
+        @elements = elements || []
+        @closing = closing
+        @location = location
+      end
+
+      def accept(visitor)
+        visitor.visit_block(self)
+      end
+
+      def child_nodes
+        [opening, *elements, closing].compact
+      end
+
+      alias deconstruct child_nodes
+
+      def deconstruct_keys(keys)
+        {
+          opening: opening,
+          content: content,
+          closing: closing,
+          location: location
+        }
+      end
+    end
+
     # An element is a child of the document. It contains an opening tag, any
     # optional content within the tag, and a closing tag. It can also
     # potentially contain an opening tag that self-closes, in which case the
     # content and closing tag will be nil.
-    class HtmlNode < Node
+    class HtmlNode < Block
       # The opening tag of an element. It contains the opening character (<),
       # the name of the element, any optional attributes, and the closing
       # token (either > or />).
@@ -177,32 +210,8 @@ module SyntaxTree
         end
       end
 
-      attr_reader :opening_tag, :content, :closing_tag, :location
-
-      def initialize(opening_tag:, content:, closing_tag:, location:)
-        @opening_tag = opening_tag
-        @content = content
-        @closing_tag = closing_tag
-        @location = location
-      end
-
       def accept(visitor)
         visitor.visit_html(self)
-      end
-
-      def child_nodes
-        [opening_tag, *content, closing_tag].compact
-      end
-
-      alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        {
-          opening_tag: opening_tag,
-          content: content,
-          closing_tag: closing_tag,
-          location: location
-        }
       end
     end
 
@@ -238,33 +247,9 @@ module SyntaxTree
       end
     end
 
-    class ErbBlock < Node
-      attr_reader :erb_node, :elements, :consequent, :location
-
-      def initialize(erb_node:, elements:, consequent:)
-        @erb_node = erb_node
-        @elements = elements
-        @consequent = consequent
-        @location = erb_node.location.to(consequent.location)
-      end
-
+    class ErbBlock < Block
       def accept(visitor)
         visitor.visit_erb_block(self)
-      end
-
-      def child_nodes
-        [*elements].compact
-      end
-
-      alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        {
-          erb_node: erb_node,
-          elements: elements,
-          consequent: consequent,
-          location: location
-        }
       end
     end
 
@@ -297,60 +282,37 @@ module SyntaxTree
       end
     end
 
-    class ErbControl < Node
-      attr_reader :erb_node
-
-      def initialize(erb_node:)
-        @erb_node = erb_node
-      end
-
-      def location
-        erb_node.location
-      end
+    class ErbControl < Block
     end
 
     class ErbIf < ErbControl
-      attr_reader :erb_node
-
-      # [[HtmlNode | ErbNode | CharDataNode]] the child elements
-      attr_reader :elements
-
-      # [nil | ErbElsif | ErbElse] the next clause in the chain
-      attr_reader :consequent
-
-      def initialize(erb_node:, elements:, consequent:)
-        super(erb_node: erb_node)
-        @elements = elements
-        @consequent = consequent
-      end
-
+      # opening: ErbNode
+      # elements: [[HtmlNode | ErbNode | CharDataNode]]
+      # closing: [nil | ErbElsif | ErbElse]
       def accept(visitor)
         visitor.visit_erb_if(self)
-      end
-
-      def child_nodes
-        elements
-      end
-
-      alias deconstruct child_nodes
-
-      def deconstruct_keys(keys)
-        {
-          erb_node: erb_node,
-          elements: elements,
-          consequent: consequent,
-          location: location
-        }
       end
     end
 
     class ErbUnless < ErbIf
+      # opening: ErbNode
+      # elements: [[HtmlNode | ErbNode | CharDataNode]]
+      # closing: [nil | ErbElsif | ErbElse]
+      def accept(visitor)
+        visitor.visit_erb_if(self)
+      end
     end
 
     class ErbElsif < ErbIf
+      def accept(visitor)
+        visitor.visit_erb_if(self)
+      end
     end
 
     class ErbElse < ErbIf
+      def accept(visitor)
+        visitor.visit_erb_if(self)
+      end
     end
 
     class ErbEnd < ErbNode
