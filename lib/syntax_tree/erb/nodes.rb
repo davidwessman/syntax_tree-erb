@@ -333,13 +333,7 @@ module SyntaxTree
       def initialize(value:)
         @unparsed_value = value
         begin
-          # We cannot handle IfNode inside a ErbContent
-          @value =
-            if SyntaxTree.search(value, "IfNode").any?
-              value&.lstrip&.rstrip
-            else
-              SyntaxTree.parse(value)
-            end
+          @value = SyntaxTree.parse(value)
         rescue SyntaxTree::Parser::ParseError
           # Removes leading and trailing whitespace
           @value = value&.lstrip&.rstrip

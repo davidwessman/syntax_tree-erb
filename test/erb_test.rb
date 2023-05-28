@@ -31,13 +31,16 @@ module SyntaxTree
 
     def test_long_if_statement
       source =
+        "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first %>\n"
+      expected =
         "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first %>\n"
 
+      # With bad formatting, it is not parseable twice
       formatted = ERB.format(source)
       formatted_again = ERB.format(formatted)
 
-      assert_equal(source, formatted)
-      assert_equal(source, formatted_again)
+      assert_equal(expected, formatted)
+      assert_equal(expected, formatted_again)
     end
 
     def test_text_erb_text
