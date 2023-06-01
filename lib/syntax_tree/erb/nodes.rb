@@ -333,7 +333,7 @@ module SyntaxTree
       def initialize(value:)
         @unparsed_value = value
         begin
-          @value = SyntaxTree.parse(value)
+          @value = SyntaxTree.parse(value.strip)
         rescue SyntaxTree::Parser::ParseError
           # Removes leading and trailing whitespace
           @value = value&.lstrip&.rstrip

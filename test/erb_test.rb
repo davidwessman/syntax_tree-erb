@@ -51,5 +51,15 @@ module SyntaxTree
         "<div>\n  This is some text\n  <%= variable %>\n  and the special value after\n</div>\n"
       )
     end
+
+    def test_erb_with_comment
+      source = "<%= what # This is a comment %>\n"
+
+      formatted_once = ERB.format(source)
+      formatted_twice = ERB.format(formatted_once)
+
+      assert_equal(source, formatted_once)
+      assert_equal(source, formatted_twice)
+    end
   end
 end

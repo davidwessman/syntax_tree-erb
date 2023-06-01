@@ -37,6 +37,7 @@ module SyntaxTree
 
       expected = SyntaxTree::ERB.read(formatted_file)
       formatted = SyntaxTree::ERB.format(SyntaxTree::ERB.read(unformatted_file))
+      formatted_twice = SyntaxTree::ERB.format(formatted)
 
       if (expected != formatted)
         puts("Failed to format #{name}, see ./tmp/#{name}_failed.html.erb")
@@ -45,6 +46,7 @@ module SyntaxTree
       end
 
       assert_equal(formatted, expected)
+      assert_equal(formatted_twice, expected)
 
       # Check that pretty_print works
       output = SyntaxTree::ERB.parse(expected).pretty_inspect
