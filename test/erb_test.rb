@@ -31,9 +31,9 @@ module SyntaxTree
 
     def test_long_if_statement
       source =
-        "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first %>\n"
+        "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
       expected =
-        "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first %>\n"
+        "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
 
       # With bad formatting, it is not parseable twice
       formatted = ERB.format(source)
