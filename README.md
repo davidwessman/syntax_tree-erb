@@ -4,34 +4,39 @@
 
 [Syntax Tree](https://github.com/ruby-syntax-tree/syntax_tree) support for ERB.
 
-## Work in progress!
-
-This is not ready for production use just yet, still need to work on:
-
-- Comments
-- Blocks using `do`
-- Blank lines
-- Probably more
-
 Currently handles
 
-- ERB tags with and without output
-- ERB tags inside strings
-- HTML tags with attributes
-- HTML tags with and without closing tags
-- ERB `if`, `elsif` and `else` statements
+- ERB
+  - Tags with and without output
+  - Tags inside strings
+  - `if`, `elsif`, `else` and `unless` statements
+  - blocks
+  - comments
+  - Formatting of the ruby-code is done by `syntax_tree`
+- HTML
+  - Tags with attributes
+  - Tags with and without closing tags
+  - Comments
 - Text output
-- Formatting the ruby code inside the ERB tags (using syntax_tree itself)
+
+## Unhandled cases
+
+- `case` statements
+- Create issue if you find more with a minimal example
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem github: "davidwessman/syntax_tree-erb"
+gem "syntax_tree-erb", github: "davidwessman/syntax_tree-erb", require: false
 ```
 
 ## Usage
+
+```sh
+bundle exec stree --plugins=erb "./**/*.html.erb"
+```
 
 From code:
 
