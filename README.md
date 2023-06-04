@@ -1,4 +1,4 @@
-# SyntaxTree::XML
+# SyntaxTree::ERB
 
 [![Build Status](https://github.com/davidwessman/syntax_tree-erb/actions/workflows/main.yml/badge.svg)](https://github.com/davidwessman/syntax_tree-erb/actions/workflows/main.yml)
 
@@ -17,12 +17,13 @@ Currently handles
   - Tags with attributes
   - Tags with and without closing tags
   - Comments
+- Vue
+  - Attributes, events and slots using `:`, `@` and `#` respectively
 - Text output
 
 ## Unhandled cases
 
-- `case` statements
-- Create issue if you find more with a minimal example
+- Please add to this pinned issue (https://github.com/davidwessman/syntax_tree-erb/issues/28) or create a separate issue if you encounter formatting or parsing errors.
 
 ## Installation
 
@@ -45,6 +46,33 @@ require "syntax_tree/erb"
 
 pp SyntaxTree::ERB.parse(source) # print out the AST
 puts SyntaxTree::ERB.format(source) # format the AST
+```
+
+## List all parsing errors
+
+In order to get a list of all parsing errors (which needs to be fixed before the formatting works), this script can be used:
+
+```ruby
+#!/bin/ruby
+
+require "syntax_tree/erb"
+
+failures = []
+
+Dir
+  .glob("./app/**/*.html.erb")
+  .each do |file|
+    puts("Processing #{file}")
+    begin
+      source = SyntaxTree::ERB.read(file)
+      SyntaxTree::ERB.parse(source)
+      SyntaxTree::ERB.format(source)
+    rescue => exception
+      failures << { file: file, message: exception.message }
+    end
+  end
+
+puts failures
 ```
 
 ## Contributing
