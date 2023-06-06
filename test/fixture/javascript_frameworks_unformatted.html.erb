@@ -1,3 +1,7 @@
+<!-- Vue -->
 <div class="card"><card-header v-b-modal.purchase_modal :title="<%= t(".title") %>" boolean :value="['a', 'b']" :long-variable-name="data.item.javascript.code"></card-header>
 
 <card-body :content="<%= @content %>" @click="doThis"><template #button-content>Hello</template></card-body></div>
+
+<!-- Alpine --><div x-data="{open: false}" class="absolute bottom-0" x-transition:enter="transition ease-out" x-transition:leave="transition ease-in">
+<button @click="open = true">Expand</button><span x-show="open"><h1>Hello</h1></span></div>

@@ -20,8 +20,8 @@ module SyntaxTree
       assert_formatting("if_statements")
     end
 
-    def test_vue_components
-      assert_formatting("vue_components")
+    def test_javascript_frameworks
+      assert_formatting("javascript_frameworks")
     end
 
     def test_layout

@@ -244,7 +244,7 @@ module SyntaxTree
                 # an equals sign
                 # =
                 enum.yield :equals, $&, index, line
-              when /\A[@:#]*[\w\.\-\_]+\b/
+              when /\A[@#]*[:\w\.\-\_]+\b/
                 # a name for an element or an attribute
                 # strong, vue-component-kebab, VueComponentPascal
                 # abc, #abc, @abc, :abc

@@ -1,3 +1,4 @@
+<!-- Vue -->
 <div class="card">
   <card-header
     v-b-modal.purchase_modal
@@ -13,4 +14,21 @@
       Hello
     </template>
   </card-body>
+</div>
+
+<!-- Alpine -->
+<div
+  x-data="{open: false}"
+  class="absolute bottom-0"
+  x-transition:enter="transition ease-out"
+  x-transition:leave="transition ease-in"
+>
+  <button @click="open = true">
+    Expand
+  </button>
+  <span x-show="open">
+    <h1>
+      Hello
+    </h1>
+  </span>
 </div>
