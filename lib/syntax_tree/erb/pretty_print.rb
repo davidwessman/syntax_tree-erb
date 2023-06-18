@@ -91,6 +91,22 @@ module SyntaxTree
         end
       end
 
+      def visit_erb_elsif(node)
+        visit_erb_if(node, "erb_elsif")
+      end
+
+      def visit_erb_else(node)
+        visit_erb_if(node, "erb_else")
+      end
+
+      def visit_erb_case(node)
+        visit_erb_if(node, "erb_case")
+      end
+
+      def visit_erb_case_when(node)
+        visit_erb_if(node, "erb_when")
+      end
+
       def visit_erb_end(node)
         q.text("erb_end")
       end

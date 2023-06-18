@@ -24,6 +24,10 @@ module SyntaxTree
       assert_formatting("javascript_frameworks")
     end
 
+    def test_case_statements
+      assert_formatting("case")
+    end
+
     def test_layout
       assert_formatting("layout")
     end

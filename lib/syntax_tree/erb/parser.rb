@@ -125,15 +125,13 @@ module SyntaxTree
                 state.pop
                 state << :erb
               when /\A\s*case/
-                raise(
-                  NotImplementedError,
-                  "case statements are not implemented"
-                )
+                enum.yield :erb_case, $&, index, line
+                state.pop
+                state << :erb
               when /\A\s*when/
-                raise(
-                  NotImplementedError,
-                  "when statements are not implemented"
-                )
+                enum.yield :erb_when, $&, index, line
+                state.pop
+                state << :erb
               when /\A\s*end/
                 enum.yield :erb_end, $&, index, line
                 state.pop
@@ -413,6 +411,44 @@ module SyntaxTree
         end
       end
 
+      def parse_erb_case(erb_node)
+        elements =
+          maybe { parse_until_erb(classes: [ErbCaseWhen, ErbElse, ErbEnd]) } ||
+            []
+
+        erb_tag = elements.pop
+
+        unless erb_tag.is_a?(ErbCaseWhen) || erb_tag.is_a?(ErbElse) ||
+                 erb_tag.is_a?(ErbEnd)
+          raise(
+            ParseError,
+            "Found no matching erb-tag to the if-tag at #{erb_node.location}"
+          )
+        end
+
+        case erb_node.keyword.type
+        when :erb_case
+          ErbCase.new(
+            opening: erb_node,
+            elements: elements,
+            closing: erb_tag,
+            location: erb_node.location.to(erb_tag.location)
+          )
+        when :erb_when
+          ErbCaseWhen.new(
+            opening: erb_node,
+            elements: elements,
+            closing: erb_tag,
+            location: erb_node.location.to(erb_tag.location)
+          )
+        else
+          raise(
+            ParseError,
+            "Found no matching when- or else-tag to the case-tag at #{erb_node.location}"
+          )
+        end
+      end
+
       def parse_erb_if(erb_node)
         elements =
           maybe { parse_until_erb(classes: [ErbElsif, ErbElse, ErbEnd]) } || []
@@ -447,6 +483,11 @@ module SyntaxTree
             elements: elements,
             closing: erb_tag,
             location: erb_node.location.to(erb_tag.location)
+          )
+        else
+          raise(
+            ParseError,
+            "Found no matching elsif- or else-tag to the if-tag at #{erb_node.location}"
           )
         end
       end
@@ -486,7 +527,8 @@ module SyntaxTree
         keyword =
           maybe { consume(:erb_if) } || maybe { consume(:erb_unless) } ||
             maybe { consume(:erb_elsif) } || maybe { consume(:erb_else) } ||
-            maybe { consume(:erb_end) }
+            maybe { consume(:erb_end) } || maybe { consume(:erb_case) } ||
+            maybe { consume(:erb_when) }
 
         content = parse_until_erb_close
         closing_tag = content.pop
@@ -510,6 +552,8 @@ module SyntaxTree
         case keyword&.type
         when :erb_if, :erb_unless, :erb_elsif
           parse_erb_if(erb_node)
+        when :erb_case, :erb_when
+          parse_erb_case(erb_node)
         when :erb_else
           parse_erb_else(erb_node)
         when :erb_end
@@ -536,6 +580,17 @@ module SyntaxTree
             erb_node
           end
         end
+      rescue MissingTokenError => error
+        # If we have parsed tokens that we cannot process after we parsed <%, we should throw a ParseError
+        # and not let it be handled by a `maybe`.
+        if opening_tag
+          raise(
+            ParseError,
+            "Could not parse ERB-tag at #{opening_tag.location}"
+          )
+        else
+          raise(error)
+        end
       end
 
       def parse_until_erb_close
@@ -543,8 +598,10 @@ module SyntaxTree
 
         loop do
           result =
-            maybe { parse_erb_do_close } || maybe { parse_erb_close } ||
-              maybe { consume(:erb_code) }
+            atleast do
+              maybe { parse_erb_do_close } || maybe { parse_erb_close } ||
+                maybe { consume(:erb_code) }
+            end
           items << result
 
           break if result.is_a?(ErbClose)

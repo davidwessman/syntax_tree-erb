@@ -64,6 +64,14 @@ module SyntaxTree
         visit_block(node)
       end
 
+      def visit_erb_case(node)
+        visit_block(node)
+      end
+
+      def visit_erb_case_when(node)
+        visit_block(node)
+      end
+
       # Visit an ErbNode node.
       def visit_erb(node)
         visit(node.opening_tag)

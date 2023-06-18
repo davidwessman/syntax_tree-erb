@@ -327,6 +327,24 @@ module SyntaxTree
       alias deconstruct child_nodes
     end
 
+    class ErbCase < ErbControl
+      # opening: ErbNode
+      # elements: [[HtmlNode | ErbNode | CharDataNode]]
+      # closing: [nil | ErbCaseWhen | ErbElse | ErbEnd]
+      def accept(visitor)
+        visitor.visit_erb_case(self)
+      end
+    end
+
+    class ErbCaseWhen < ErbControl
+      # opening: ErbNode
+      # elements: [[HtmlNode | ErbNode | CharDataNode]]
+      # closing: [nil | ErbCaseWhen | ErbElse | ErbEnd]
+      def accept(visitor)
+        visitor.visit_erb_case_when(self)
+      end
+    end
+
     class ErbContent < Node
       attr_reader(:value, :unparsed_value)
 
