@@ -1,7 +1,12 @@
 name: Main
 on:
-  - push
-  - pull_request_target
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types: [opened, synchronize, reopened]
 jobs:
   ci:
     strategy:
