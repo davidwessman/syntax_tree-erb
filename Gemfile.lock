@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    syntax_tree-erb (0.0.1)
+    w_syntax_tree-erb (0.9.0)
       prettier_print (>= 1.2.0)
       syntax_tree (>= 6.1.1)
 
@@ -32,7 +32,7 @@ DEPENDENCIES
   minitest
   rake
   simplecov
-  syntax_tree-erb!
+  w_syntax_tree-erb!
 
 BUNDLED WITH
    2.4.1

@@ -6,11 +6,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
-## [0.0.1] - 2023-05-25
+## [0.9.0] - 2023-06-22
 
 ### Added
 
-- 🎉 First version based on syntax_tree-xml 🎉
+- 🎉 First version based on syntax_tree-xml 🎉.
+- Can format a lot of .html.erb-syntax and works as a plugin to syntax_tree.
+- This is still early and there are a lot of different weird syntaxes out there.
 
-[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.1.0...HEAD
-[0.0.1]: https://github.com/davidwessman/syntax_tree-erb/compare/b280a...v0.1.0
+[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/davidwessman/syntax_tree-erb/compare/419727a73af94057ca0980733e69ac8b4d52fdf4...v0.9.0

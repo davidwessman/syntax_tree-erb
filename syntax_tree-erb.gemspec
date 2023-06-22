@@ -3,7 +3,7 @@
 require_relative "lib/syntax_tree/erb/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "syntax_tree-erb"
+  spec.name = "w_syntax_tree-erb"
   spec.version = SyntaxTree::ERB::VERSION
   spec.authors = ["Kevin Newton", "David Wessman"]
   spec.email = %w[kddnewton@gmail.com david@wessman.co]

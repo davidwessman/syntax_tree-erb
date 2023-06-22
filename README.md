@@ -30,8 +30,10 @@ Currently handles
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "syntax_tree-erb", github: "davidwessman/syntax_tree-erb", require: false
+gem "w_syntax_tree-erb", "~> 0.9", require: false
 ```
+
+> I added the `w_` prefix to avoid conflicts if there will ever be an official `syntax_tree-erb` gem.
 
 ## Usage
 
