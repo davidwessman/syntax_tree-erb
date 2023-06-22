@@ -204,17 +204,26 @@ module SyntaxTree
       end
 
       def erb_print_width(syntax_tree)
-        syntax_tree => SyntaxTree::Program[
-          statements: SyntaxTree::Statements[
-            body: [SyntaxTree::IfNode | SyntaxTree::IfOp => if_node]
-          ]
-        ]
-
+        statements = syntax_tree.statements.body
         # Set the width to maximum if we have an IfNode or IfOp,
         # we cannot format them purely with SyntaxTree because the ERB-syntax will be unparseable.
-        if_node.nil? ? SyntaxTree::ERB::MAX_WIDTH : 999_999
-      rescue NoMatchingPatternError
-        SyntaxTree::ERB::MAX_WIDTH
+        if statements.any? { |node| check_for_if_statement(node) }
+          999_999
+        else
+          SyntaxTree::ERB::MAX_WIDTH
+        end
+      end
+
+      def check_for_if_statement(node)
+        return false if node.nil?
+
+        if node.is_a?(SyntaxTree::IfNode) || node.is_a?(SyntaxTree::IfOp)
+          return true
+        end
+
+        node.child_nodes.any? do |child_node|
+          check_for_if_statement(child_node)
+        end
       end
     end
   end
