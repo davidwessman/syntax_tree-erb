@@ -80,8 +80,7 @@ module SyntaxTree
           q.text(" ")
           visit(node.keyword)
         end
-
-        visit(node.content)
+        node.content.nil? ? q.text(" ") : visit(node.content)
 
         visit(node.closing_tag)
       end
@@ -104,29 +103,44 @@ module SyntaxTree
       end
 
       def visit_erb_content(node)
-        rows =
-          if node.value.is_a?(String)
-            node.value.split("\n")
-          else
-            formatter =
-              SyntaxTree::Formatter.new("", [], erb_print_width(node.value))
-            formatter.format(node.value.statements)
-            formatter.flush
-            formatter.output.join.split("\n")
-          end
-
-        if rows.size > 1
-          q.group do
-            q.text(" ")
-            q.seplist(rows, -> { q.breakable(" ") }) { |row| q.text(row) }
-            q.text(" ")
-          end
-        elsif rows.size == 1
-          q.text(" ")
-          q.text(rows.first)
-          q.text(" ")
+        if node.value.is_a?(String)
+          output_rows(node.value.split("\n"))
         else
-          q.text(" ")
+          child_nodes = node.value&.statements&.child_nodes || []
+
+          if child_nodes.size == 1
+            q.text(" ")
+            q.seplist(child_nodes, -> { q.breakable("") }) do |child_node|
+              format_statement(child_node)
+            end
+            q.text(" ")
+          elsif child_nodes.size > 1
+            q.indent do
+              q.breakable("")
+              q.seplist(child_nodes, -> { q.breakable("") }) do |child_node|
+                format_statement(child_node)
+              end
+            end
+            q.breakable
+          end
+        end
+      end
+
+      def format_statement(statement)
+        formatter =
+          SyntaxTree::Formatter.new("", [], erb_print_width(statement))
+        formatter.format(statement)
+        formatter.flush
+        rows = formatter.output.join.split("\n")
+
+        output_rows(formatter.output.join.split("\n"))
+      end
+
+      def output_rows(rows)
+        if rows.size > 1
+          q.seplist(rows, -> { q.breakable("") }) { |row| q.text(row) }
+        elsif rows.size == 1
+          q.text(rows.first)
         end
       end
 
@@ -203,15 +217,10 @@ module SyntaxTree
         end
       end
 
-      def erb_print_width(syntax_tree)
-        statements = syntax_tree.statements.body
+      def erb_print_width(node)
         # Set the width to maximum if we have an IfNode or IfOp,
         # we cannot format them purely with SyntaxTree because the ERB-syntax will be unparseable.
-        if statements.any? { |node| check_for_if_statement(node) }
-          999_999
-        else
-          SyntaxTree::ERB::MAX_WIDTH
-        end
+        check_for_if_statement(node) ? 999_999 : SyntaxTree::ERB::MAX_WIDTH
       end
 
       def check_for_if_statement(node)

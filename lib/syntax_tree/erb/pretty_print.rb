@@ -108,12 +108,12 @@ module SyntaxTree
       end
 
       def visit_erb_end(node)
-        q.text("erb_end")
+        q.pp("erb_end")
       end
 
       # Visit an ErbContent node.
       def visit_erb_content(node)
-        q.text(node.value)
+        q.pp(node.value)
       end
 
       # Visit an Attribute node.
@@ -132,7 +132,7 @@ module SyntaxTree
       end
 
       def visit_erb_close(node)
-        visit_node("erb_close", node)
+        visit(node.closing)
       end
 
       def visit_erb_do_close(node)

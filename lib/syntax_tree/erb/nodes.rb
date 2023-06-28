@@ -220,8 +220,19 @@ module SyntaxTree
 
       def initialize(opening_tag:, keyword:, content:, closing_tag:, location:)
         @opening_tag = opening_tag
-        @keyword = keyword
-        @content = ErbContent.new(value: content.map(&:value).join) if content
+        # prune whitespace from keyword
+        @keyword =
+          if keyword
+            Token.new(
+              type: keyword.type,
+              value: keyword.value.strip,
+              location: keyword.location
+            )
+          end
+        # Set content to nil if it is empty
+        content ||= []
+        content = content.map(&:value).join if content.is_a?(Array)
+        @content = ErbContent.new(value: content) unless content.strip.empty?
         @closing_tag = closing_tag
         @location = location
       end
