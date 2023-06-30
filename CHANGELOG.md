@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.9.3] - 2023-06-30
+
+- Print empty html-tags on one line if possible
+
 ## [0.9.2] - 2023-06-30
 
 - Handle whitespace in HTML-strings using ERB-tags

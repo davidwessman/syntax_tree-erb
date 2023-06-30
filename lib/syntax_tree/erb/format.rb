@@ -49,7 +49,12 @@ module SyntaxTree
       end
 
       def visit_html(node)
-        visit_block(node)
+        # Make sure to group the tags together if there is no child nodes.
+        if node.elements.size == 0
+          q.group { visit_block(node) }
+        else
+          visit_block(node)
+        end
       end
 
       def visit_erb_block(node)

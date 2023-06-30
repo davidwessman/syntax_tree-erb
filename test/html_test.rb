@@ -89,5 +89,13 @@ module SyntaxTree
       formatted = ERB.format(source)
       assert_equal("<div class=\"card\">\n  Hello World\n</div>\n", formatted)
     end
+
+    def test_html_attribute_without_content
+      source = "<component-without-content>\n</component-without-content>\n"
+      expected = "<component-without-content></component-without-content>\n"
+
+      formatted = ERB.format(source)
+      assert_equal(expected, formatted)
+    end
   end
 end
