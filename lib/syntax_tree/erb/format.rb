@@ -11,7 +11,11 @@ module SyntaxTree
 
       # Visit a Token node.
       def visit_token(node)
-        q.text(node.value.strip)
+        if %i[text whitespace].include?(node.type)
+          q.text(node.value)
+        else
+          q.text(node.value.strip)
+        end
       end
 
       # Visit a Document node.
