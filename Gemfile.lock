@@ -2,8 +2,8 @@ PATH
   remote: .
   specs:
     w_syntax_tree-erb (0.9.4)
-      prettier_print (>= 1.2.0)
-      syntax_tree (>= 6.1.1)
+      prettier_print (~> 1.2, >= 1.2.0)
+      syntax_tree (~> 6.1, >= 6.1.1)
 
 GEM
   remote: https://rubygems.org/
@@ -28,10 +28,10 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  bundler
-  minitest
-  rake
-  simplecov
+  bundler (~> 2)
+  minitest (~> 5)
+  rake (~> 13)
+  simplecov (~> 0.22)
   w_syntax_tree-erb!
 
 BUNDLED WITH
