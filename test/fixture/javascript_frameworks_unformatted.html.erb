@@ -3,5 +3,8 @@
 
 <card-body :content="<%= @content %>" @click="doThis"><template #button-content>Hello</template></card-body></div>
 
+<three-word-component :allowed-words="['first', 'second', 'third', 'fourth']" :disallowed-words="['fifth', 'sixth']">
+</three-word-component>
+
 <!-- Alpine --><div x-data="{open: false}" class="absolute bottom-0" x-transition:enter="transition ease-out" x-transition:leave="transition ease-in">
 <button @click="open = true">Expand</button><span x-show="open"><h1>Hello</h1></span></div>

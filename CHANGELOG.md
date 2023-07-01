@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.9.4] - 2023-07-01
+
+- Inline even more empty HTML-tags
+
+```diff
+<three-word-component
+  :attribute1
+  :attribute2
+  :attribute3="value"
+->
+-</three-word-component>
++></three-word-component>
+```
+
 ## [0.9.3] - 2023-06-30
 
 - Print empty html-tags on one line if possible

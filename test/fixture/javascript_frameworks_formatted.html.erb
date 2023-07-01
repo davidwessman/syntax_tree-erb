@@ -6,8 +6,7 @@
     boolean
     :value="['a', 'b']"
     :long-variable-name="data.item.javascript.code"
-  >
-  </card-header>
+  ></card-header>
 
   <card-body :content="<%= @content %>" @click="doThis">
     <template #button-content>
@@ -15,6 +14,11 @@
     </template>
   </card-body>
 </div>
+
+<three-word-component
+  :allowed-words="['first', 'second', 'third', 'fourth']"
+  :disallowed-words="['fifth', 'sixth']"
+></three-word-component>
 
 <!-- Alpine -->
 <div

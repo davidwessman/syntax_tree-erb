@@ -51,7 +51,10 @@ module SyntaxTree
       def visit_html(node)
         # Make sure to group the tags together if there is no child nodes.
         if node.elements.size == 0
-          q.group { visit_block(node) }
+          q.group do
+            visit(node.opening)
+            visit(node.closing)
+          end
         else
           visit_block(node)
         end
