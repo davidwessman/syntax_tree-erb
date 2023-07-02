@@ -77,6 +77,21 @@ Dir
 puts failures
 ```
 
+## Development
+
+Setup linting:
+
+```sh
+npm run prepare
+```
+
+Install dependencies and run tests:
+
+```sh
+bundle
+bundle exec rake
+```
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/davidwessman/syntax_tree-erb.

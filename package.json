@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "lib/**/*.rb": [
+      "bundle exec stree write"
+    ]
+  }
+}
