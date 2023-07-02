@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.9.5] - 2023-07-02
+
+- Fixes ruby comment in ERB-tag included VoidStatement
+  Example:
+
+```erb
+<% # this is a comment %>
+```
+
+Output:
+
+```diff
+-<%
+-
+-  # this is a comment
+-%>
++<% # this is a comment %>
+```
+
+- Updates versions in Bundler
+
 ## [0.9.4] - 2023-07-01
 
 - Inline even more empty HTML-tags
