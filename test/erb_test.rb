@@ -62,6 +62,15 @@ module SyntaxTree
       assert_equal(source, formatted_twice)
     end
 
+    def test_erb_only_comment
+      source = "<% # This should be written on one line %>\n"
+      formatted_once = ERB.format(source)
+      formatted_twice = ERB.format(formatted_once)
+
+      assert_equal(source, formatted_once)
+      assert_equal(source, formatted_twice)
+    end
+
     def test_erb_ternary_as_argument_without_parentheses
       source =
         "<%=     f.submit f.object.id.present?     ? t('buttons.titles.save'):t('buttons.titles.create')   %>"

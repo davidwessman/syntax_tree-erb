@@ -118,18 +118,19 @@ module SyntaxTree
         if node.value.is_a?(String)
           output_rows(node.value.split("\n"))
         else
-          child_nodes = node.value&.statements&.child_nodes || []
+          nodes = node.value&.statements&.child_nodes || []
+          nodes = nodes.reject { |node| node.is_a?(SyntaxTree::VoidStmt) }
 
-          if child_nodes.size == 1
+          if nodes.size == 1
             q.text(" ")
-            q.seplist(child_nodes, -> { q.breakable("") }) do |child_node|
+            q.seplist(nodes, -> { q.breakable("") }) do |child_node|
               format_statement(child_node)
             end
             q.text(" ")
-          elsif child_nodes.size > 1
+          elsif nodes.size > 1
             q.indent do
               q.breakable("")
-              q.seplist(child_nodes, -> { q.breakable("") }) do |child_node|
+              q.seplist(nodes, -> { q.breakable("") }) do |child_node|
                 format_statement(child_node)
               end
             end
