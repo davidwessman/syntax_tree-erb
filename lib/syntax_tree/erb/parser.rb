@@ -178,7 +178,7 @@ module SyntaxTree
                 # the beginning of an ERB tag
                 # <%
                 enum.yield :erb_open, $&, index, line
-                state << :erb
+                state << :erb_start
               when /\A[^<']+/
                 # plain text content
                 # abc
@@ -201,7 +201,7 @@ module SyntaxTree
                 # the beginning of an ERB tag
                 # <%
                 enum.yield :erb_open, $&, index, line
-                state << :erb
+                state << :erb_start
               when /\A[^<"]+/
                 # plain text content
                 # abc
@@ -251,7 +251,7 @@ module SyntaxTree
                 # the beginning of an ERB tag
                 # <%
                 enum.yield :erb_open, $&, index, line
-                state << :erb
+                state << :erb_start
               when /\A"/
                 # the beginning of a string
                 enum.yield :string_open_double_quote, $&, index, line

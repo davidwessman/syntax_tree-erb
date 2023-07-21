@@ -22,7 +22,7 @@ module SyntaxTree
       def visit_document(node)
         child_nodes = node.child_nodes.sort_by(&:location)
 
-        q.seplist(child_nodes, -> { q.breakable(force: true) }) do |child_node|
+        q.seplist(child_nodes, -> { q.breakable }) do |child_node|
           visit(child_node)
         end
 
@@ -35,10 +35,9 @@ module SyntaxTree
         if node.elements.any?
           q.indent do
             q.breakable("")
-            q.seplist(
-              node.elements,
-              -> { q.breakable(force: true) }
-            ) { |child_node| visit(child_node) }
+            q.seplist(node.elements, -> { q.breakable }) do |child_node|
+              visit(child_node)
+            end
           end
         end
 
