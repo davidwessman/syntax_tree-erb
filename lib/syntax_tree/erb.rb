@@ -26,5 +26,6 @@ module SyntaxTree
     end
   end
 
+  register_handler(".html.erb", ERB)
   register_handler(".erb", ERB)
 end
