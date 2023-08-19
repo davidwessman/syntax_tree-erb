@@ -38,9 +38,11 @@ module SyntaxTree
       directory = File.expand_path("fixture", __dir__)
       unformatted_file = File.join(directory, "#{name}_unformatted.html.erb")
       formatted_file = File.join(directory, "#{name}_formatted.html.erb")
+      source = SyntaxTree::ERB.read(unformatted_file)
 
+      parsed = SyntaxTree::ERB.parse(source)
       expected = SyntaxTree::ERB.read(formatted_file)
-      formatted = SyntaxTree::ERB.format(SyntaxTree::ERB.read(unformatted_file))
+      formatted = SyntaxTree::ERB.format(source)
 
       if (expected != formatted)
         puts("Failed to format #{name}, see ./tmp/#{name}_failed.html.erb")

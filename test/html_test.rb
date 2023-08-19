@@ -3,7 +3,7 @@
 require "test_helper"
 
 module SyntaxTree
-  class HtmlTest < Minitest::Test
+  class HtmlTest < TestCase
     def test_html_missing_end_tag
       assert_raises(SyntaxTree::ERB::Parser::ParseError) do
         ERB.parse("<h1>Hello World")
@@ -40,11 +40,9 @@ module SyntaxTree
       source = "<!-- This is a HTML-comment -->\n"
       parsed = ERB.parse(source)
       elements = parsed.elements
-      assert_equal(1, elements.size)
-      assert_instance_of(SyntaxTree::ERB::HtmlComment, elements.first)
+      assert_equal([SyntaxTree::ERB::HtmlComment], elements.map(&:class))
 
-      formatted = ERB.format(source)
-      assert_equal(source, formatted)
+      assert_formatting(source, source)
     end
 
     def test_html_within_quotes
@@ -86,16 +84,101 @@ module SyntaxTree
       assert_equal("class", attribute.key.value)
       assert_equal("card", attribute.value.contents.first.value)
 
-      formatted = ERB.format(source)
-      assert_equal("<div class=\"card\">\n  Hello World\n</div>\n", formatted)
+      expected = "<div class=\"card\">Hello World</div>\n"
+      assert_formatting(source, expected)
     end
 
     def test_html_attribute_without_content
       source = "<component-without-content>\n</component-without-content>\n"
       expected = "<component-without-content></component-without-content>\n"
 
-      formatted = ERB.format(source)
-      assert_equal(expected, formatted)
+      assert_formatting(source, expected)
+    end
+
+    def test_keep_lines_with_text
+      source = "<h2>Hello <%= @football_team_membership.user %>,</h2>\n"
+      expected = "<h2>Hello <%= @football_team_membership.user %>,</h2>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_keep_lines_with_text2
+      source = "Hello <span>Name</span>!"
+      expected = "Hello <span>Name</span>!\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_keep_lines_with_text3
+      source = "<div>Hello <span>Name</span>!</div>"
+      expected = "<div>Hello <span>Name</span>!</div>\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_newlines
+      source = "Hello\n\n\n\nGoodbye!\n"
+      expected = "Hello\n\nGoodbye!\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_empty_component
+      source =
+        "<three-word-component :allowed-words=\"['first', 'second', 'third', 'fourth']\" :disallowed-words=\"['fifth', 'sixth']\" >\n</three-word-component>"
+      expected =
+        "<three-word-component\n  :allowed-words=\"['first', 'second', 'third', 'fourth']\"\n  :disallowed-words=\"['fifth', 'sixth']\"\n></three-word-component>\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_indentation
+      source =
+        "<div>\n    <div>\n     <div>\nWhat\n</div>\n     </div>\n  </div>\n"
+
+      expected = "<div>\n  <div>\n    <div>What</div>\n  </div>\n</div>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_append_newlines
+      source = "<div>\nWhat\n</div>"
+      parsed = ERB.parse(source)
+
+      assert_equal(1, parsed.elements.size)
+      html = parsed.elements.first
+
+      refute_nil(html.opening.new_line)
+      refute_nil(html.elements.first.new_line)
+      assert_nil(html.closing.new_line)
+
+      assert_formatting(source, "<div>What</div>\n")
+      assert_formatting("<div>What</div>", "<div>What</div>\n")
+    end
+
+    def test_self_closing_with_blank_line
+      source =
+        "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n\n<title>Test</title>\n"
+
+      assert_formatting(source, source)
+    end
+
+    def test_tag_with_leading_spaces
+      source = "<div>   What</div>"
+      expected = "<div>What</div>\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_tag_with_leading_spaces_erb
+      source = "<div>   <%=user.name%></div>"
+      expected = "<div><%= user.name %></div>\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_breakable_on_char_data_white_space
+      source =
+        "You have been removed as a user from <strong><%= @company.title %></strong> by <%= @administrator.name %>."
+      expected =
+        "You have been removed as a user from <strong>\n  <%= @company.title %>\n</strong> by <%= @administrator.name %>.\n"
+
+      assert_formatting(source, expected)
     end
   end
 end

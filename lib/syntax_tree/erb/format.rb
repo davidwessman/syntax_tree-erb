@@ -22,9 +22,7 @@ module SyntaxTree
       def visit_document(node)
         child_nodes = node.child_nodes.sort_by(&:location)
 
-        q.seplist(child_nodes, -> { q.breakable }) do |child_node|
-          visit(child_node)
-        end
+        handle_child_nodes(child_nodes)
 
         q.breakable(force: true)
       end
@@ -32,30 +30,55 @@ module SyntaxTree
       def visit_block(node)
         visit(node.opening)
 
+        breakable = breakable_inside(node)
         if node.elements.any?
           q.indent do
-            q.breakable("")
-            q.seplist(node.elements, -> { q.breakable }) do |child_node|
-              visit(child_node)
-            end
+            q.breakable if breakable
+            handle_child_nodes(node.elements)
           end
         end
 
         if node.closing
-          q.breakable("")
+          q.breakable("") if breakable
+          visit(node.closing)
+        end
+      end
+
+      def visit_html_groupable(node, group)
+        if node.elements.size == 0
+          visit(node.opening)
+          visit(node.closing)
+        else
+          visit(node.opening)
+
+          with_break = breakable_inside(node)
+          q.indent do
+            if with_break
+              group ? q.breakable("") : q.breakable
+            end
+            handle_child_nodes(node.elements)
+          end
+
+          if with_break
+            group ? q.breakable("") : q.breakable
+          end
           visit(node.closing)
         end
       end
 
       def visit_html(node)
         # Make sure to group the tags together if there is no child nodes.
-        if node.elements.size == 0
-          q.group do
-            visit(node.opening)
-            visit(node.closing)
-          end
+        if node.elements.size == 0 ||
+             node.elements.any? { |node|
+               node.is_a?(SyntaxTree::ERB::CharData)
+             } ||
+             (
+               node.elements.size == 1 &&
+                 node.elements.first.is_a?(SyntaxTree::ERB::ErbNode)
+             )
+          q.group { visit_html_groupable(node, true) }
         else
-          visit_block(node)
+          visit_html_groupable(node, false)
         end
       end
 
@@ -145,7 +168,7 @@ module SyntaxTree
         formatter.flush
         rows = formatter.output.join.split("\n")
 
-        output_rows(formatter.output.join.split("\n"))
+        output_rows(rows)
       end
 
       def output_rows(rows)
@@ -169,9 +192,14 @@ module SyntaxTree
                 visit(child_node)
               end
             end
+
+            # Only add breakable if we have attributes
+            q.breakable(node.closing.value == "/>" ? " " : "")
+          elsif node.closing.value == "/>"
+            # Need a space before end-tag for self-closing
+            q.text(" ")
           end
 
-          q.breakable(node.closing.value == "/>" ? " " : "")
           visit(node.closing)
         end
       end
@@ -207,15 +235,20 @@ module SyntaxTree
         visit(node.token)
       end
 
+      def visit_erb_comment(node)
+        visit(node.token)
+      end
+
       # Visit a CharData node.
       def visit_char_data(node)
-        lines = node.value.value.strip.split("\n")
+        return if node.value.value.strip.empty?
 
-        if lines.size > 0
-          q.seplist(lines, -> { q.breakable(indent: false) }) do |line|
-            q.text(line)
-          end
-        end
+        q.text(node.value.value)
+      end
+
+      def visit_new_line(node)
+        q.breakable(force: :skip_parent_break)
+        q.breakable(force: :skip_parent_break) if node.count > 1
       end
 
       # Visit a Doctype node.
@@ -227,6 +260,49 @@ module SyntaxTree
 
           visit(node.closing)
         end
+      end
+
+      private
+
+      def breakable_inside(node)
+        if node.is_a?(SyntaxTree::ERB::HtmlNode)
+          node.elements.first.class != SyntaxTree::ERB::CharData ||
+            node_new_line_count(node.opening) > 0
+        elsif node.is_a?(SyntaxTree::ERB::Block)
+          true
+        end
+      end
+
+      def breakable_between(node, next_node)
+        new_lines = node_new_line_count(node)
+
+        if new_lines == 1
+          q.breakable
+        elsif new_lines > 1
+          q.breakable
+          q.breakable(force: :skip_parent_break)
+        elsif next_node && !node.is_a?(SyntaxTree::ERB::CharData) &&
+              !next_node.is_a?(SyntaxTree::ERB::CharData)
+          q.breakable
+        end
+      end
+
+      def breakable_between_group(node, next_node)
+        new_lines = node_new_line_count(node)
+
+        if new_lines == 1
+          q.breakable(force: true)
+        elsif new_lines > 1
+          q.breakable(force: true)
+          q.breakable(force: true)
+        elsif next_node && !node.is_a?(SyntaxTree::ERB::CharData) &&
+              !next_node.is_a?(SyntaxTree::ERB::CharData)
+          q.breakable("")
+        end
+      end
+
+      def node_new_line_count(node)
+        node.respond_to?(:new_line) ? node.new_line&.count || 0 : 0
       end
 
       def erb_print_width(node)
@@ -245,6 +321,60 @@ module SyntaxTree
         node.child_nodes.any? do |child_node|
           check_for_if_statement(child_node)
         end
+      end
+
+      def handle_child_nodes(child_nodes)
+        group = []
+
+        if child_nodes.size == 1
+          visit(child_nodes.first)
+          return
+        end
+
+        child_nodes.each_with_index do |child_node, index|
+          is_last = index == child_nodes.size - 1
+
+          # Last element should not have new lines
+          node = is_last ? child_node.without_new_line : child_node
+
+          if node_should_group(node)
+            group << node
+            next
+          end
+
+          # Render all group elements before the current node
+          handle_group(group, break_after: true)
+          group = []
+
+          # Render the current node
+          visit(node)
+          next_node = child_nodes[index + 1]
+
+          breakable_between(node, next_node)
+        end
+
+        # Handle group if we have any nodes left
+        handle_group(group, break_after: false)
+      end
+
+      def handle_group(nodes, break_after:)
+        return unless nodes.any?
+
+        q.group do
+          nodes.each_with_index do |node, group_index|
+            visit(node)
+            next_node = nodes[group_index + 1]
+            next if next_node.nil?
+            breakable_between_group(node, next_node)
+          end
+        end
+
+        breakable_between_group(nodes.last, nil) if break_after
+      end
+
+      def node_should_group(node)
+        node.is_a?(SyntaxTree::ERB::CharData) ||
+          node.is_a?(SyntaxTree::ERB::ErbNode)
       end
     end
   end

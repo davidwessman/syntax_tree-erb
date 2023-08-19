@@ -53,6 +53,14 @@ module SyntaxTree
       def pretty_print(q)
         PrettyPrint.new(q).visit(self)
       end
+
+      def without_new_line
+        self
+      end
+
+      def skip?
+        false
+      end
     end
 
     # A Token is any kind of lexical token from the source. It has a type, a
@@ -110,6 +118,25 @@ module SyntaxTree
       end
     end
 
+    # This is a base class for a Node that can also hold an appended
+    # new line.
+    class Element < Node
+      attr_reader(:new_line, :location)
+
+      def initialize(new_line:, location:)
+        @new_line = new_line
+        @location = location
+      end
+
+      def without_new_line
+        self.class.new(**deconstruct_keys([]).merge(new_line: nil))
+      end
+
+      def deconstruct_keys(keys)
+        { new_line: new_line, location: location }
+      end
+    end
+
     # This is a base class for a block that contains:
     # - an opening
     # - optional elements
@@ -131,12 +158,22 @@ module SyntaxTree
         [opening, *elements, closing].compact
       end
 
+      def new_line
+        closing.new_line if closing.respond_to?(:new_line)
+      end
+
+      def without_new_line
+        self.class.new(
+          **deconstruct_keys([]).merge(closing: closing.without_new_line)
+        )
+      end
+
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
         {
           opening: opening,
-          content: content,
+          elements: elements,
           closing: closing,
           location: location
         }
@@ -151,15 +188,22 @@ module SyntaxTree
       # The opening tag of an element. It contains the opening character (<),
       # the name of the element, any optional attributes, and the closing
       # token (either > or />).
-      class OpeningTag < Node
-        attr_reader :opening, :name, :attributes, :closing, :location
+      class OpeningTag < Element
+        attr_reader :opening, :name, :attributes, :closing
 
-        def initialize(opening:, name:, attributes:, closing:, location:)
+        def initialize(
+          opening:,
+          name:,
+          attributes:,
+          closing:,
+          new_line:,
+          location:
+        )
+          super(new_line: new_line, location: location)
           @opening = opening
           @name = name
           @attributes = attributes
           @closing = closing
-          @location = location
         end
 
         def accept(visitor)
@@ -173,26 +217,25 @@ module SyntaxTree
         alias deconstruct child_nodes
 
         def deconstruct_keys(keys)
-          {
+          super.merge(
             opening: opening,
             name: name,
             attributes: attributes,
-            closing: closing,
-            location: location
-          }
+            closing: closing
+          )
         end
       end
 
       # The closing tag of an element. It contains the opening character (<),
       # the name of the element, and the closing character (>).
-      class ClosingTag < Node
-        attr_reader :opening, :name, :closing, :location
+      class ClosingTag < Element
+        attr_reader :opening, :name, :closing
 
-        def initialize(opening:, name:, closing:, location:)
+        def initialize(opening:, name:, closing:, location:, new_line:)
+          super(new_line: new_line, location: location)
           @opening = opening
           @name = name
           @closing = closing
-          @location = location
         end
 
         def accept(visitor)
@@ -206,8 +249,13 @@ module SyntaxTree
         alias deconstruct child_nodes
 
         def deconstruct_keys(keys)
-          { opening: opening, name: name, closing: closing, location: location }
+          super.merge(opening: opening, name: name, closing: closing)
         end
+      end
+
+      # The HTML-closing tag is responsible for new lines after the node.
+      def new_line
+        closing.nil? ? opening.new_line : closing&.new_line
       end
 
       def accept(visitor)
@@ -215,10 +263,18 @@ module SyntaxTree
       end
     end
 
-    class ErbNode < Node
-      attr_reader :opening_tag, :keyword, :content, :closing_tag, :location
+    class ErbNode < Element
+      attr_reader :opening_tag, :keyword, :content, :closing_tag
 
-      def initialize(opening_tag:, keyword:, content:, closing_tag:, location:)
+      def initialize(
+        opening_tag:,
+        keyword:,
+        content:,
+        closing_tag:,
+        new_line:,
+        location:
+      )
+        super(new_line: new_line, location: location)
         @opening_tag = opening_tag
         # prune whitespace from keyword
         @keyword =
@@ -229,12 +285,18 @@ module SyntaxTree
               location: keyword.location
             )
           end
-        # Set content to nil if it is empty
-        content ||= []
-        content = content.map(&:value).join if content.is_a?(Array)
-        @content = ErbContent.new(value: content) unless content.strip.empty?
+
+        @content =
+          if content.is_a?(ErbContent)
+            content
+          else
+            # Set content to nil if it is empty
+            content ||= []
+            content = content.map(&:value).join if content.is_a?(Array)
+            ErbContent.new(value: content) unless content.strip.empty?
+          end
+
         @closing_tag = closing_tag
-        @location = location
       end
 
       def accept(visitor)
@@ -245,30 +307,50 @@ module SyntaxTree
         [opening_tag, keyword, content, closing_tag].compact
       end
 
+      def new_line
+        closing_tag&.new_line
+      end
+
+      def without_new_line
+        self.class.new(
+          **deconstruct_keys([]).merge(
+            closing_tag: closing_tag.without_new_line
+          )
+        )
+      end
+
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        {
+        super.merge(
           opening_tag: opening_tag,
           keyword: keyword,
           content: content,
-          closing_tag: closing_tag,
-          location: location
-        }
+          closing_tag: closing_tag
+        )
       end
     end
 
     class ErbBlock < Block
+      def initialize(opening:, location:, elements: nil, closing: nil)
+        super(
+          opening: opening,
+          location: location,
+          elements: elements,
+          closing: closing
+        )
+      end
+
       def accept(visitor)
         visitor.visit_erb_block(self)
       end
     end
 
-    class ErbClose < Node
-      attr_reader :location, :closing
+    class ErbClose < Element
+      attr_reader :closing
 
-      def initialize(location:, closing:)
-        @location = location
+      def initialize(closing:, new_line:, location:)
+        super(new_line: new_line, location: location)
         @closing = closing
       end
 
@@ -283,7 +365,7 @@ module SyntaxTree
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        { location: location, closing: closing }
+        super.merge(closing: closing)
       end
     end
 
@@ -442,12 +524,12 @@ module SyntaxTree
       end
     end
 
-    class HtmlComment < Node
-      attr_reader :token, :location
+    class HtmlComment < Element
+      attr_reader :token
 
-      def initialize(token:, location:)
+      def initialize(token:, new_line:, location:)
+        super(new_line: new_line, location: location)
         @token = token
-        @location = location
       end
 
       def accept(visitor)
@@ -461,18 +543,41 @@ module SyntaxTree
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        { token: token, location: location }
+        super.merge(token: token)
+      end
+    end
+
+    class ErbComment < Element
+      attr_reader :token
+
+      def initialize(token:, new_line:, location:)
+        super(new_line: new_line, location: location)
+        @token = token
+      end
+
+      def accept(visitor)
+        visitor.visit_erb_comment(self)
+      end
+
+      def child_nodes
+        []
+      end
+
+      alias deconstruct child_nodes
+
+      def deconstruct_keys(keys)
+        super.merge(token: token)
       end
     end
 
     # A CharData contains either plain text or whitespace within an element.
     # It wraps a single token value.
-    class CharData < Node
-      attr_reader :value, :location
+    class CharData < Element
+      attr_reader :value
 
-      def initialize(value:, location:)
+      def initialize(value:, new_line:, location:)
+        super(new_line: new_line, location: location)
         @value = value
-        @location = location
       end
 
       def accept(visitor)
@@ -486,7 +591,34 @@ module SyntaxTree
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        { value: value, location: location }
+        super.merge(value: value)
+      end
+
+      def skip?
+        value.value.strip.empty?
+      end
+    end
+
+    class NewLine < Node
+      attr_reader :count, :location
+
+      def initialize(location:, count:)
+        @location = location
+        @count = count
+      end
+
+      def accept(visitor)
+        visitor.visit_new_line(self)
+      end
+
+      def child_nodes
+        []
+      end
+
+      alias deconstruct child_nodes
+
+      def deconstruct_keys(keys)
+        { location: location, count: count }
       end
     end
 
@@ -494,14 +626,14 @@ module SyntaxTree
     # type of the document. It contains an opening declaration, the name of
     # the document type, an optional external identifier, and a closing of the
     # tag.
-    class Doctype < Node
-      attr_reader :opening, :name, :closing, :location
+    class Doctype < Element
+      attr_reader :opening, :name, :closing
 
-      def initialize(opening:, name:, closing:, location:)
+      def initialize(opening:, name:, closing:, new_line:, location:)
+        super(new_line: new_line, location: location)
         @opening = opening
         @name = name
         @closing = closing
-        @location = location
       end
 
       def accept(visitor)
@@ -515,7 +647,7 @@ module SyntaxTree
       alias deconstruct child_nodes
 
       def deconstruct_keys(keys)
-        { opening: opening, name: name, closing: closing, location: location }
+        super.merge(opening: opening, name: name, closing: closing)
       end
     end
   end

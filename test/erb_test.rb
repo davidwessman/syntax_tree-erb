@@ -3,7 +3,7 @@
 require "test_helper"
 
 module SyntaxTree
-  class ErbTest < Minitest::Test
+  class ErbTest < TestCase
     def test_empty_file
       parsed = ERB.parse("")
       assert_instance_of(SyntaxTree::ERB::Document, parsed)
@@ -35,40 +35,28 @@ module SyntaxTree
       expected =
         "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
 
-      # With bad formatting, it is not parseable twice
-      formatted = ERB.format(source)
-      formatted_again = ERB.format(formatted)
-
-      assert_equal(expected, formatted)
-      assert_equal(expected, formatted_again)
+      assert_formatting(source, expected)
     end
 
     def test_text_erb_text
-      assert_equal(
-        ERB.format(
-          "<div>This is some text <%= variable %> and the special value after</div>"
-        ),
-        "<div>\n  This is some text\n  <%= variable %>\n  and the special value after\n</div>\n"
-      )
+      source =
+        "<div>This is some text <%= variable %> and the special value after</div>"
+      expected =
+        "<div>This is some text <%= variable %> and the special value after</div>\n"
+
+      assert_formatting(source, expected)
     end
 
     def test_erb_with_comment
       source = "<%= what # This is a comment %>\n"
 
-      formatted_once = ERB.format(source)
-      formatted_twice = ERB.format(formatted_once)
-
-      assert_equal(source, formatted_once)
-      assert_equal(source, formatted_twice)
+      assert_formatting(source, source)
     end
 
     def test_erb_only_comment
       source = "<% # This should be written on one line %>\n"
-      formatted_once = ERB.format(source)
-      formatted_twice = ERB.format(formatted_once)
 
-      assert_equal(source, formatted_once)
-      assert_equal(source, formatted_twice)
+      assert_formatting(source, source)
     end
 
     def test_erb_ternary_as_argument_without_parentheses
@@ -76,9 +64,30 @@ module SyntaxTree
         "<%=     f.submit f.object.id.present?     ? t('buttons.titles.save'):t('buttons.titles.create')   %>"
       expected =
         "<%= f.submit f.object.id.present? ? t(\"buttons.titles.save\") : t(\"buttons.titles.create\") %>\n"
-      formatted = ERB.format(source)
 
-      assert_equal(expected, formatted)
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_whitespace
+      source =
+        "<%= 1 %>,<%= 2 %>What\n<%= link_to(url) do %><strong>Very long link Very long link Very long link Very long link</strong><% end %>"
+      expected =
+        "<%= 1 %>,<%= 2 %>What\n<%= link_to(url) do %>\n  <strong>Very long link Very long link Very long link Very long link</strong>\n<% end %>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_newline999
+      source = "<%= what if this %>\n<h1>hej</h1>"
+      expected = "<%= what if this %>\n<h1>hej</h1>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_group_blank_line
+      source = "<%= hello %>\n<%= heya %>\n\n<%# breaks the group %>\n"
+
+      assert_formatting(source, source)
     end
   end
 end

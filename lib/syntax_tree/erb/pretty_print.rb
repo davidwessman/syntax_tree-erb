@@ -108,7 +108,7 @@ module SyntaxTree
       end
 
       def visit_erb_end(node)
-        q.pp("erb_end")
+        q.pp("(erb_end)")
       end
 
       # Visit an ErbContent node.
@@ -131,6 +131,10 @@ module SyntaxTree
         visit_node("char_data", node)
       end
 
+      def visit_new_line(node)
+        node.count > 1 ? q.text("(new_line blank)") : q.text("(new_line)")
+      end
+
       def visit_erb_close(node)
         visit(node.closing)
       end
@@ -146,6 +150,10 @@ module SyntaxTree
 
       def visit_html_comment(node)
         visit_node("html_comment", node)
+      end
+
+      def visit_erb_comment(node)
+        visit_node("erb_comment", node)
       end
 
       private

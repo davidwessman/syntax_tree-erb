@@ -10,9 +10,7 @@
       href="https://fonts.googleapis.com/css?family=Inter:100,200,300,400,500,600,700,800,900&display=swap"
       rel="stylesheet"
     />
-    <title>
-      <%= full_title(t("general.title"), yield(:title)) %>
-    </title>
+    <title><%= full_title(t("general.title"), yield(:title)) %></title>
     <%= stylesheet_link_tag(
       "application",
       media: "all",
@@ -41,9 +39,7 @@
         </main>
       </div>
 
-      <footer>
-        <%= render("footer") %>
-      </footer>
+      <footer><%= render("footer") %></footer>
     </div>
   </body>
 </html>

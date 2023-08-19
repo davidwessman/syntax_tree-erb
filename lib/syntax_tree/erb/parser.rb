@@ -41,10 +41,16 @@ module SyntaxTree
       private
 
       def parse_any_tag
-        atleast do
-          maybe { parse_html_comment } || maybe { parse_erb_tag } ||
-            maybe { consume(:erb_comment) } || maybe { parse_html_element } ||
-            maybe { parse_blank_line } || maybe { parse_chardata }
+        loop do
+          tag =
+            atleast do
+              maybe { parse_html_comment } || maybe { parse_erb_tag } ||
+                maybe { parse_erb_comment } || maybe { parse_html_element } ||
+                maybe { parse_new_line } || maybe { parse_chardata }
+            end
+
+          # Allow skipping empty CharData
+          return tag unless tag.skip?
         end
       end
 
@@ -62,10 +68,10 @@ module SyntaxTree
                 # two or more newlines should be ONE blank line
                 enum.yield :blank_line, $&, index, line
                 line += $&.count("\n")
-              when /\A(?: |\t|\n|\r\n)+/m
-                # whitespace
-                # enum.yield :whitespace, $&, index, line
-                line += $&.count("\n")
+              when /\A\n/
+                # newlines
+                enum.yield :new_line, $&, index, line
+                line += 1
               when /\A<!--(.|\r?\n)*?-->/m
                 # comments
                 # <!-- this is a comment -->
@@ -97,8 +103,11 @@ module SyntaxTree
                 # <
                 enum.yield :open, $&, index, line
                 state << :inside
-              when /\A[^<]+/
-                # plain text content
+              when /\A(?: |\t|\r)+/m
+                # whitespace
+                enum.yield :whitespace, $&, index, line
+              when /\A(?!\s+$)[^<\n]+/
+                # plain text content, but do not allow only white space
                 # abc
                 enum.yield :text, $&, index, line
               else
@@ -357,12 +366,18 @@ module SyntaxTree
             maybe { consume(:close) } || maybe { consume(:slash_close) }
           end
 
+        new_line = maybe { parse_new_line }
+
+        # Parse any whitespace after new lines
+        maybe { consume(:whitespace) }
+
         HtmlNode::OpeningTag.new(
           opening: opening,
           name: name,
           attributes: attributes,
           closing: closing,
-          location: opening.location.to(closing.location)
+          location: opening.location.to(closing.location),
+          new_line: new_line
         )
       end
 
@@ -371,11 +386,14 @@ module SyntaxTree
         name = consume(:name)
         closing = consume(:close)
 
+        new_line = maybe { parse_new_line }
+
         HtmlNode::ClosingTag.new(
           opening: opening,
           name: name,
           closing: closing,
-          location: opening.location.to(closing.location)
+          location: opening.location.to(closing.location),
+          new_line: new_line
         )
       end
 
@@ -450,6 +468,9 @@ module SyntaxTree
       end
 
       def parse_erb_if(erb_node)
+        # Skip any leading whitespace
+        maybe { consume(:whitespace) }
+
         elements =
           maybe { parse_until_erb(classes: [ErbElsif, ErbElse, ErbEnd]) } || []
 
@@ -513,11 +534,14 @@ module SyntaxTree
       end
 
       def parse_erb_end(erb_node)
+        new_line = maybe { parse_new_line }
+
         ErbEnd.new(
           opening_tag: erb_node.opening_tag,
           keyword: erb_node.keyword,
           content: nil,
           closing_tag: erb_node.closing_tag,
+          new_line: new_line,
           location: erb_node.location
         )
       end
@@ -540,12 +564,15 @@ module SyntaxTree
           )
         end
 
+        new_line = maybe { parse_new_line }
+
         erb_node =
           ErbNode.new(
             opening_tag: opening_tag,
             keyword: keyword,
             content: content,
             closing_tag: closing_tag,
+            new_line: new_line,
             location: opening_tag.location.to(closing_tag.location)
           )
 
@@ -602,6 +629,7 @@ module SyntaxTree
               maybe { parse_erb_do_close } || maybe { parse_erb_close } ||
                 maybe { consume(:erb_code) }
             end
+
           items << result
 
           break if result.is_a?(ErbClose)
@@ -610,22 +638,46 @@ module SyntaxTree
         items
       end
 
-      def parse_blank_line
-        blank_line = consume(:blank_line)
+      # This method is called at the end of most tags, it fixes:
+      # 1. Parsing any new lines after the tag
+      # 2. Parsing any whitespace after the new lines
+      # The whitespace is just consumed
+      def parse_new_line
+        line_break =
+          atleast do
+            maybe { consume(:blank_line) } || maybe { consume(:new_line) }
+          end
 
-        CharData.new(value: blank_line, location: blank_line.location)
+        maybe { consume(:whitespace) }
+
+        NewLine.new(
+          location: line_break.location,
+          count: line_break.value.count("\n")
+        )
       end
 
       def parse_erb_close
         closing = consume(:erb_close)
 
-        ErbClose.new(location: closing.location, closing: closing)
+        new_line = maybe { parse_new_line }
+
+        ErbClose.new(
+          location: closing.location,
+          new_line: new_line,
+          closing: closing
+        )
       end
 
       def parse_erb_do_close
         closing = consume(:erb_do_close)
 
-        ErbDoClose.new(location: closing.location, closing: closing)
+        new_line = maybe { parse_new_line }
+
+        ErbDoClose.new(
+          location: closing.location,
+          new_line: new_line,
+          closing: closing
+        )
       end
 
       def parse_html_string
@@ -715,7 +767,15 @@ module SyntaxTree
             values.first
           end
 
-        CharData.new(value: token, location: token.location) if token
+        new_line = maybe { parse_new_line }
+
+        if token&.value
+          CharData.new(
+            value: token,
+            location: token.location,
+            new_line: new_line
+          )
+        end
       end
 
       def parse_doctype
@@ -723,10 +783,13 @@ module SyntaxTree
         name = consume(:name)
         closing = consume(:close)
 
+        new_line = maybe { parse_new_line }
+
         Doctype.new(
           opening: opening,
           name: name,
           closing: closing,
+          new_line: new_line,
           location: opening.location.to(closing.location)
         )
       end
@@ -734,7 +797,25 @@ module SyntaxTree
       def parse_html_comment
         comment = consume(:html_comment)
 
-        HtmlComment.new(token: comment, location: comment.location)
+        new_line = maybe { parse_new_line }
+
+        HtmlComment.new(
+          token: comment,
+          new_line: new_line,
+          location: comment.location
+        )
+      end
+
+      def parse_erb_comment
+        comment = consume(:erb_comment)
+
+        new_line = maybe { parse_new_line }
+
+        ErbComment.new(
+          token: comment,
+          new_line: new_line,
+          location: comment.location
+        )
       end
     end
   end
