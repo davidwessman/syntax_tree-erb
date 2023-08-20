@@ -180,5 +180,12 @@ module SyntaxTree
 
       assert_formatting(source, expected)
     end
+
+    def test_self_closing_group
+      source = "<link />\n<link />\n<meta />"
+      expected = "<link />\n<link />\n<meta />\n"
+
+      assert_formatting(source, expected)
+    end
   end
 end

@@ -164,7 +164,7 @@ module SyntaxTree
 
       def without_new_line
         self.class.new(
-          **deconstruct_keys([]).merge(closing: closing.without_new_line)
+          **deconstruct_keys([]).merge(closing: closing&.without_new_line)
         )
       end
 
@@ -251,6 +251,15 @@ module SyntaxTree
         def deconstruct_keys(keys)
           super.merge(opening: opening, name: name, closing: closing)
         end
+      end
+
+      def without_new_line
+        self.class.new(
+          **deconstruct_keys([]).merge(
+            opening: closing.nil? ? opening.without_new_line : opening,
+            closing: closing&.without_new_line
+          )
+        )
       end
 
       # The HTML-closing tag is responsible for new lines after the node.

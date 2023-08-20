@@ -12,17 +12,9 @@ class TestCase < Minitest::Test
   def assert_formatting(source, expected)
     formatted = SyntaxTree::ERB.format(source)
 
-    if (expected != formatted)
-      binding.irb if debug
-    end
-
     assert_equal(formatted, expected, "Failed first")
 
     formatted_twice = SyntaxTree::ERB.format(formatted)
-
-    if (expected != formatted_twice)
-      binding.irb if debug
-    end
 
     assert_equal(formatted_twice, expected, "Failed second")
 
