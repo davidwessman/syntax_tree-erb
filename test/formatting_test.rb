@@ -40,7 +40,6 @@ module SyntaxTree
       formatted_file = File.join(directory, "#{name}_formatted.html.erb")
       source = SyntaxTree::ERB.read(unformatted_file)
 
-      parsed = SyntaxTree::ERB.parse(source)
       expected = SyntaxTree::ERB.read(formatted_file)
       formatted = SyntaxTree::ERB.format(source)
 

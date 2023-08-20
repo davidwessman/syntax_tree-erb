@@ -88,27 +88,35 @@ module SyntaxTree
       assert_formatting(source, expected)
     end
 
-    def test_html_attribute_without_content
+    def test_empty_component_without_attributes
       source = "<component-without-content>\n</component-without-content>\n"
       expected = "<component-without-content></component-without-content>\n"
 
       assert_formatting(source, expected)
     end
 
-    def test_keep_lines_with_text
-      source = "<h2>Hello <%= @football_team_membership.user %>,</h2>\n"
+    def test_empty_component_with_attributes
+      source =
+        "<three-word-component :allowed-words=\"['first', 'second', 'third', 'fourth']\" :disallowed-words=\"['fifth', 'sixth']\" >\n</three-word-component>"
+      expected =
+        "<three-word-component\n  :allowed-words=\"['first', 'second', 'third', 'fourth']\"\n  :disallowed-words=\"['fifth', 'sixth']\"\n></three-word-component>\n"
+      assert_formatting(source, expected)
+    end
+
+    def test_keep_lines_with_text_in_block
+      source = "<h2>Hello <%= @football_team_membership.user %>,</h2>"
       expected = "<h2>Hello <%= @football_team_membership.user %>,</h2>\n"
 
       assert_formatting(source, expected)
     end
 
-    def test_keep_lines_with_text2
+    def test_keep_lines_with_text_in_block_in_document
       source = "Hello <span>Name</span>!"
       expected = "Hello <span>Name</span>!\n"
       assert_formatting(source, expected)
     end
 
-    def test_keep_lines_with_text3
+    def test_keep_lines_with_nested_html
       source = "<div>Hello <span>Name</span>!</div>"
       expected = "<div>Hello <span>Name</span>!</div>\n"
       assert_formatting(source, expected)
@@ -118,14 +126,6 @@ module SyntaxTree
       source = "Hello\n\n\n\nGoodbye!\n"
       expected = "Hello\n\nGoodbye!\n"
 
-      assert_formatting(source, expected)
-    end
-
-    def test_empty_component
-      source =
-        "<three-word-component :allowed-words=\"['first', 'second', 'third', 'fourth']\" :disallowed-words=\"['fifth', 'sixth']\" >\n</three-word-component>"
-      expected =
-        "<three-word-component\n  :allowed-words=\"['first', 'second', 'third', 'fourth']\"\n  :disallowed-words=\"['fifth', 'sixth']\"\n></three-word-component>\n"
       assert_formatting(source, expected)
     end
 

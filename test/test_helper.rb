@@ -10,7 +10,6 @@ require "minitest/autorun"
 
 class TestCase < Minitest::Test
   def assert_formatting(source, expected)
-    parsed = SyntaxTree::ERB.parse(source)
     formatted = SyntaxTree::ERB.format(source)
 
     if (expected != formatted)

@@ -23,6 +23,12 @@ module SyntaxTree
       end
     end
 
+    def test_missing_erb_case_end_tag
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<% case variabel %>\n<% when 1>\n  Hello\n")
+      end
+    end
+
     def test_erb_code_with_non_ascii
       parsed = ERB.parse("<% \"Påäööööö\" %>")
       assert_equal(1, parsed.elements.size)
@@ -31,7 +37,7 @@ module SyntaxTree
 
     def test_long_if_statement
       source =
-        "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
+        "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>"
       expected =
         "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
 
@@ -53,8 +59,14 @@ module SyntaxTree
       assert_formatting(source, source)
     end
 
-    def test_erb_only_comment
+    def test_erb_only_ruby_comment
       source = "<% # This should be written on one line %>\n"
+
+      assert_formatting(source, source)
+    end
+
+    def test_erb_only_erb_comment
+      source = "<%# This should be written on one line %>\n"
 
       assert_formatting(source, source)
     end
@@ -77,7 +89,7 @@ module SyntaxTree
       assert_formatting(source, expected)
     end
 
-    def test_erb_newline999
+    def test_erb_newline
       source = "<%= what if this %>\n<h1>hej</h1>"
       expected = "<%= what if this %>\n<h1>hej</h1>\n"
 
