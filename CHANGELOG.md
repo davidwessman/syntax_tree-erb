@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.10.1] - 2023-08-20
+
+### Added
+
+- Allow `DOCTYPE` to be after other tags, to work with e.g. ERB-tags on first line.
+
 ## [0.10.0] - 2023-08-20
 
 - Changes how whitespace and newlines are handled.
@@ -70,7 +76,8 @@ Output:
 - Can format a lot of .html.erb-syntax and works as a plugin to syntax_tree.
 - This is still early and there are a lot of different weird syntaxes out there.
 
-[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.0...HEAD
+[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.5...v0.10.0
 [0.9.5]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.3...v0.9.4

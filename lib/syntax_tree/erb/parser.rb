@@ -20,16 +20,16 @@ module SyntaxTree
       def initialize(source)
         @source = source
         @tokens = make_tokens
+        @found_doctype = false
       end
 
       def parse
-        doctype = maybe { parse_doctype }
         elements = many { parse_any_tag }
 
         location =
           elements.first.location.to(elements.last.location) if elements.any?
 
-        Document.new(elements: [doctype].compact + elements, location: location)
+        Document.new(elements: elements, location: location)
       end
 
       def debug_tokens
@@ -44,11 +44,19 @@ module SyntaxTree
         loop do
           tag =
             atleast do
-              maybe { parse_html_comment } || maybe { parse_erb_tag } ||
-                maybe { parse_erb_comment } || maybe { parse_html_element } ||
-                maybe { parse_new_line } || maybe { parse_chardata }
+              maybe { parse_doctype } || maybe { parse_html_comment } ||
+                maybe { parse_erb_tag } || maybe { parse_erb_comment } ||
+                maybe { parse_html_element } || maybe { parse_new_line } ||
+                maybe { parse_chardata }
             end
 
+          if tag.is_a?(Doctype)
+            if @found_doctype
+              raise(ParseError, "Only one doctype element is allowed")
+            else
+              @found_doctype = true
+            end
+          end
           # Allow skipping empty CharData
           return tag unless tag.skip?
         end

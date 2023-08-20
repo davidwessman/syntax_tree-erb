@@ -34,6 +34,19 @@ module SyntaxTree
 
       parsed = ERB.parse("<!doctype html>")
       assert_instance_of(SyntaxTree::ERB::Doctype, parsed.elements.first)
+
+      # Allow doctype to not be the first element
+      parsed = ERB.parse("<% theme = \"general\" %> <!DOCTYPE html>")
+      assert_equal(2, parsed.elements.size)
+      assert_equal(
+        [SyntaxTree::ERB::ErbNode, SyntaxTree::ERB::Doctype],
+        parsed.elements.map(&:class)
+      )
+
+      # Do not allow multiple doctype elements
+      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+        ERB.parse("<!DOCTYPE html>\n<!DOCTYPE html>\n")
+      end
     end
 
     def test_html_comment
