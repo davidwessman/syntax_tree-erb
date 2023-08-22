@@ -28,6 +28,11 @@ module SyntaxTree
       end
     end
 
+    def test_empty_file
+      source = ""
+      assert_formatting(source, "\n")
+    end
+
     def test_html_doctype
       parsed = ERB.parse("<!DOCTYPE html>")
       assert_instance_of(SyntaxTree::ERB::Doctype, parsed.elements.first)

@@ -57,6 +57,10 @@ module SyntaxTree
               @found_doctype = true
             end
           end
+
+          # Ignore new lines in beginning of document
+          next if tag.is_a?(NewLine)
+
           # Allow skipping empty CharData
           return tag unless tag.skip?
         end

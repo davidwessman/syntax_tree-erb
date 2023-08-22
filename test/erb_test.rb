@@ -101,5 +101,12 @@ module SyntaxTree
 
       assert_formatting(source, source)
     end
+
+    def test_erb_empty_first_line
+      source = "\n\n<%= what %>\n"
+      expected = "<%= what %>\n"
+
+      assert_formatting(source, expected)
+    end
   end
 end
