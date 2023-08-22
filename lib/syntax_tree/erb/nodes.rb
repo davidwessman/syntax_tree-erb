@@ -606,6 +606,21 @@ module SyntaxTree
       def skip?
         value.value.strip.empty?
       end
+
+      # Also remove trailing whitespace
+      def without_new_line
+        self.class.new(
+          **deconstruct_keys([]).merge(
+            new_line: nil,
+            value:
+              Token.new(
+                type: value.type,
+                location: value.location,
+                value: value.value.rstrip
+              )
+          )
+        )
+      end
     end
 
     class NewLine < Node

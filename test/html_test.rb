@@ -178,14 +178,14 @@ module SyntaxTree
       assert_formatting(source, source)
     end
 
-    def test_tag_with_leading_spaces
-      source = "<div>   What</div>"
+    def test_tag_with_leading_and_trailing_spaces
+      source = "<div>   What   </div>"
       expected = "<div>What</div>\n"
       assert_formatting(source, expected)
     end
 
-    def test_tag_with_leading_spaces_erb
-      source = "<div>   <%=user.name%></div>"
+    def test_tag_with_leading_and_trailing_spaces_erb
+      source = "<div>   <%=user.name%>   </div>"
       expected = "<div><%= user.name %></div>\n"
       assert_formatting(source, expected)
     end

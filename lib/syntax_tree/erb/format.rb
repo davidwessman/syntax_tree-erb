@@ -327,7 +327,7 @@ module SyntaxTree
         group = []
 
         if child_nodes.size == 1
-          visit(child_nodes.first)
+          visit(child_nodes.first.without_new_line)
           return
         end
 
