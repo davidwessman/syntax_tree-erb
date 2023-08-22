@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.10.2] - 2023-08-22
+
 ### Fixes
 
 - Handles formatting empty documents and removing leading new-linews in files with content.
+- Removes trailing whitespace from char data if it is the last element in a document, block or group.
 
 ## [0.10.1] - 2023-08-20
 
