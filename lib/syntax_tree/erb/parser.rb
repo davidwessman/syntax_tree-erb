@@ -94,7 +94,7 @@ module SyntaxTree
                 # <!DOCTYPE
                 enum.yield :doctype, $&, index, line
                 state << :inside
-              when /\A<%#.*%>/
+              when /\A<%#[\s\S]*?%>/
                 # An ERB-comment
                 # <%# this is an ERB comment %>
                 enum.yield :erb_comment, $&, index, line

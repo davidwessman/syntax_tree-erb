@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+- Avoid grouping single tags
+- Handle multiline ERB-comments
+
 ## [0.10.3] - 2023-08-27
 
 ## Fixes

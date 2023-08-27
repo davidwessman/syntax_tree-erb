@@ -114,6 +114,7 @@ module SyntaxTree
           q.text(" ")
           visit(node.keyword)
         end
+
         node.content.blank? ? q.text(" ") : visit(node.content)
 
         visit(node.closing_tag)
@@ -137,13 +138,15 @@ module SyntaxTree
       end
 
       def visit_erb_content(node)
-        nodes = node.value&.statements&.child_nodes || []
+        # Reject all VoidStmt to avoid empty lines
+        nodes =
+          (node.value&.statements&.child_nodes || []).reject do |node|
+            node.is_a?(SyntaxTree::VoidStmt)
+          end
 
         if nodes.size == 1
           q.text(" ")
-          q.seplist(nodes, -> { q.breakable("") }) do |child_node|
-            format_statement(child_node)
-          end
+          format_statement(nodes.first)
           q.text(" ")
         elsif nodes.size > 1
           q.indent do
