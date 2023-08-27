@@ -43,9 +43,10 @@ module SyntaxTree
     end
 
     def test_if_and_end_in_same_tag
-      source = "<% if true then this elsif false then that else maybe end %>"
+      source =
+        "<% if true then this elsif false then that else maybe end %>\n<h1>Hey</h1>"
       expected =
-        "<% if true\n  this\nelsif false\n  that\nelse\n  maybe\nend %>\n"
+        "<% if true\n  this\nelsif false\n  that\nelse\n  maybe\nend %>\n<h1>Hey</h1>\n"
 
       assert_formatting(source, expected)
     end
