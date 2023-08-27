@@ -35,11 +35,44 @@ module SyntaxTree
       assert_instance_of(SyntaxTree::ERB::ErbNode, parsed.elements.first)
     end
 
+    def test_if_and_end_in_same_output_tag_short
+      source = "<%= if true\n  what\nend %>"
+      expected = "<%= what if true %>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_if_and_end_in_same_tag
+      source = "<% if true then this elsif false then that else maybe end %>"
+      expected =
+        "<% if true\n  this\nelsif false\n  that\nelse\n  maybe\nend %>\n"
+
+      assert_formatting(source, expected)
+    end
+
     def test_long_if_statement
       source =
         "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>"
       expected =
-        "<%= number_to_percentage(@reports&.first&.stability * 100, precision: 1) if @reports&.first&.other&.stronger&.longer %>\n"
+        "<%= if @reports&.first&.other&.stronger&.longer\n  number_to_percentage(@reports&.first&.stability * 100, precision: 1)\nend %>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_else_if_statement
+      source =
+        "<%if this%>\n  <h1>A</h1>\n<%elsif that%>\n  <h1>B</h1>\n<%else%>\n  <h1>C</h1>\n<%end%>"
+      expected =
+        "<% if this %>\n  <h1>A</h1>\n<% elsif that %>\n  <h1>B</h1>\n<% else %>\n  <h1>C</h1>\n<% end %>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_long_ternary
+      source =
+        "<%= number_to_percentage(@reports&.first&.stability * 100, precision: @reports&.first&.stability ? 'Stable' : 'Unstable') %>"
+      expected =
+        "<%= number_to_percentage(\n  @reports&.first&.stability * 100,\n  precision: @reports&.first&.stability ? \"Stable\" : \"Unstable\"\n) %>\n"
 
       assert_formatting(source, expected)
     end
@@ -73,9 +106,9 @@ module SyntaxTree
 
     def test_erb_ternary_as_argument_without_parentheses
       source =
-        "<%=     f.submit f.object.id.present?     ? t('buttons.titles.save'):t('buttons.titles.create')   %>"
+        "<%=     f.submit( f.object.id.present?     ? t('buttons.titles.save'):t('buttons.titles.create'))   %>"
       expected =
-        "<%= f.submit f.object.id.present? ? t(\"buttons.titles.save\") : t(\"buttons.titles.create\") %>\n"
+        "<%= f.submit(\n  f.object.id.present? ? t(\"buttons.titles.save\") : t(\"buttons.titles.create\")\n) %>\n"
 
       assert_formatting(source, expected)
     end

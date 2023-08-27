@@ -295,16 +295,7 @@ module SyntaxTree
             )
           end
 
-        @content =
-          if content.is_a?(ErbContent)
-            content
-          else
-            # Set content to nil if it is empty
-            content ||= []
-            content = content.map(&:value).join if content.is_a?(Array)
-            ErbContent.new(value: content) unless content.strip.empty?
-          end
-
+        @content = prepare_content(content)
         @closing_tag = closing_tag
       end
 
@@ -337,6 +328,24 @@ module SyntaxTree
           content: content,
           closing_tag: closing_tag
         )
+      end
+
+      private
+
+      def prepare_content(content)
+        if content.is_a?(ErbContent)
+          content
+        else
+          # Set content to nil if it is empty
+          content ||= []
+
+          ErbContent.new(value: content)
+        end
+      rescue SyntaxTree::Parser::ParseError
+        # Try to add the keyword to see if it parses
+        result = ErbContent.new(value: [keyword, *content])
+        @keyword = nil
+        result
       end
     end
 
@@ -413,7 +422,7 @@ module SyntaxTree
 
     class ErbElse < ErbIf
       def accept(visitor)
-        visitor.visit_erb_if(self)
+        visitor.visit_erb_else(self)
       end
     end
 
@@ -448,16 +457,23 @@ module SyntaxTree
     end
 
     class ErbContent < Node
-      attr_reader(:value, :unparsed_value)
+      attr_reader(:value)
 
       def initialize(value:)
-        @unparsed_value = value
-        begin
-          @value = SyntaxTree.parse(value.strip)
-        rescue SyntaxTree::Parser::ParseError
-          # Removes leading and trailing whitespace
-          @value = value&.lstrip&.rstrip
+        if value.is_a?(Array)
+          value =
+            value.map { |token| token.is_a?(Token) ? token.value : token }.join
         end
+        @value = SyntaxTree.parse(value.strip)
+      end
+
+      def blank?
+        value.nil? ||
+          value
+            .statements
+            .child_nodes
+            .reject { |node| node.is_a?(SyntaxTree::VoidStmt) }
+            .empty?
       end
 
       def accept(visitor)

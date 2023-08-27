@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.10.3] - 2023-08-27
+
+## Fixes
+
+- Allows parsing ERB-tags with if, else and end in the same tag
+
+```erb
+<%= if true
+  what
+end %>
+```
+
+This opens the possibility for formatting all if-statements with SyntaxTree properly
+and removes the fix where any if-statement was force to one row.
+
 ## [0.10.2] - 2023-08-22
 
 ### Fixes

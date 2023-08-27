@@ -114,7 +114,7 @@ module SyntaxTree
           q.text(" ")
           visit(node.keyword)
         end
-        node.content.nil? ? q.text(" ") : visit(node.content)
+        node.content.blank? ? q.text(" ") : visit(node.content)
 
         visit(node.closing_tag)
       end
@@ -163,7 +163,8 @@ module SyntaxTree
 
       def format_statement(statement)
         formatter =
-          SyntaxTree::Formatter.new("", [], erb_print_width(statement))
+          SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
+
         formatter.format(statement)
         formatter.flush
         rows = formatter.output.join.split("\n")
@@ -303,24 +304,6 @@ module SyntaxTree
 
       def node_new_line_count(node)
         node.respond_to?(:new_line) ? node.new_line&.count || 0 : 0
-      end
-
-      def erb_print_width(node)
-        # Set the width to maximum if we have an IfNode or IfOp,
-        # we cannot format them purely with SyntaxTree because the ERB-syntax will be unparseable.
-        check_for_if_statement(node) ? 999_999 : SyntaxTree::ERB::MAX_WIDTH
-      end
-
-      def check_for_if_statement(node)
-        return false if node.nil?
-
-        if node.is_a?(SyntaxTree::IfNode) || node.is_a?(SyntaxTree::IfOp)
-          return true
-        end
-
-        node.child_nodes.any? do |child_node|
-          check_for_if_statement(child_node)
-        end
       end
 
       def handle_child_nodes(child_nodes)

@@ -588,7 +588,7 @@ module SyntaxTree
             location: opening_tag.location.to(closing_tag.location)
           )
 
-        case keyword&.type
+        case erb_node.keyword&.type
         when :erb_if, :erb_unless, :erb_elsif
           parse_erb_if(erb_node)
         when :erb_case, :erb_when
