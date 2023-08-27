@@ -19,7 +19,7 @@ end %>
 ```
 
 This opens the possibility for formatting all if-statements with SyntaxTree properly
-and removes the fix where any if-statement was force to one row.
+and removes the fix where any if-statement was force to one line.
 
 ## [0.10.2] - 2023-08-22
 
