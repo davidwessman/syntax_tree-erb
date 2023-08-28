@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.10.4] - 2023-08-28
+
 - Avoid grouping single tags
 - Handle multiline ERB-comments
 
@@ -101,7 +103,10 @@ Output:
 - Can format a lot of .html.erb-syntax and works as a plugin to syntax_tree.
 - This is still early and there are a lot of different weird syntaxes out there.
 
-[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.1...HEAD
+[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.4...HEAD
+[0.10.4]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.3...v0.10.4
+[0.10.3]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.2...v0.10.3
+[0.10.2]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.5...v0.10.0
 [0.9.5]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.9.4...v0.9.5
