@@ -51,6 +51,13 @@ module SyntaxTree
       assert_formatting(source, expected)
     end
 
+    def test_erb_inside_html_tag
+      source = "<div <% if eeee then \"b\" else c end %>></div>"
+      expected = "<div <% eeee ? \"b\" : c %>></div>\n"
+
+      assert_formatting(source, expected)
+    end
+
     def test_long_if_statement
       source =
         "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>"

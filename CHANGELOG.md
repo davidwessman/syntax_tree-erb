@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+- Handle ERB-tags inside HTML-tags, like `<div <%= "class='foo'" %>>`
+
 ## [0.10.4] - 2023-08-28
 
 - Avoid grouping single tags

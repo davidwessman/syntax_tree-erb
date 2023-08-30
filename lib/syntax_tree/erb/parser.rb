@@ -368,10 +368,17 @@ module SyntaxTree
       def parse_html_opening_tag
         opening = consume(:open)
         name = consume(:name)
+
         if name.value =~ /\A[@:#]/
           raise ParseError, "Invalid html-tag name #{name}"
         end
-        attributes = many { parse_html_attribute }
+
+        attributes =
+          many do
+            atleast do
+              maybe { parse_erb_tag } || maybe { parse_html_attribute }
+            end
+          end
 
         closing =
           atleast do
