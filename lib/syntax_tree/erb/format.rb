@@ -236,7 +236,9 @@ module SyntaxTree
       end
 
       def visit_erb_comment(node)
-        visit(node.token)
+        q.seplist(node.token.value.split("\n"), -> { q.breakable }) do |line|
+          q.text(line.lstrip)
+        end
       end
 
       # Visit a CharData node.

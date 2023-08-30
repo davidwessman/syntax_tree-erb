@@ -114,9 +114,9 @@ module SyntaxTree
 
     def test_erb_multiline_comment
       source =
-        "<%#\n  This is the first\nThis is the second\nThis is the third %>"
+        "<%#\n  This is the first\n     This is the second\n    This is the third %>"
       expected =
-        "<%#\n  This is the first\nThis is the second\nThis is the third %>\n"
+        "<%#\nThis is the first\nThis is the second\nThis is the third %>\n"
 
       assert_formatting(source, expected)
     end
