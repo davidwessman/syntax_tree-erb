@@ -121,7 +121,10 @@ module SyntaxTree
       end
 
       def visit_erb_do_close(node)
-        visit(node.closing)
+        closing = node.closing.value.end_with?("-%>") ? "-%>" : "%>"
+        q.text(node.closing.value.gsub(closing, "").rstrip)
+        q.text(" ")
+        q.text(closing)
       end
 
       def visit_erb_close(node)

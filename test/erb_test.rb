@@ -139,6 +139,14 @@ module SyntaxTree
       assert_formatting(source, expected)
     end
 
+    def test_erb_block_do_arguments
+      source = "<%= link_to(url) do |link, other_arg|%>Whaaaaaaat<% end %>"
+      expected =
+        "<%= link_to(url) do |link, other_arg| %>\n  Whaaaaaaat\n<% end %>\n"
+
+      assert_formatting(source, expected)
+    end
+
     def test_erb_newline
       source = "<%= what if this %>\n<h1>hej</h1>"
       expected = "<%= what if this %>\n<h1>hej</h1>\n"
