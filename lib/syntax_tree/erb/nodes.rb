@@ -481,7 +481,7 @@ module SyntaxTree
       end
 
       def child_nodes
-        []
+        [@value].compact
       end
 
       alias deconstruct child_nodes
