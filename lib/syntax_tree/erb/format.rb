@@ -203,6 +203,10 @@ module SyntaxTree
             q.text(" ")
           end
 
+          # If element is a valid void element, but not currently self-closing
+          # format to be self-closing
+          q.text(" /") if node.is_void_element? and node.closing.value == ">"
+
           visit(node.closing)
         end
       end

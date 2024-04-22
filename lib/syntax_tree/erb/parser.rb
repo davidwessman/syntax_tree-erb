@@ -419,7 +419,11 @@ module SyntaxTree
       def parse_html_element
         opening = parse_html_opening_tag
 
-        if opening.closing.value == ">"
+        if opening.closing.value == "/>"
+          HtmlNode.new(opening: opening, location: opening.location)
+        elsif opening.is_void_element?
+          HtmlNode.new(opening: opening, location: opening.location)
+        else
           elements = many { parse_any_tag }
           closing = maybe { parse_html_closing }
 
@@ -443,8 +447,6 @@ module SyntaxTree
             closing: closing,
             location: opening.location.to(closing.location)
           )
-        else
-          HtmlNode.new(opening: opening, location: opening.location)
         end
       end
 

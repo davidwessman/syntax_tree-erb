@@ -185,6 +185,25 @@ module SyntaxTree
     # potentially contain an opening tag that self-closes, in which case the
     # content and closing tag will be nil.
     class HtmlNode < Block
+      # These elements do not require a closing tag
+      # https://developer.mozilla.org/en-US/docs/Glossary/Void_element
+      HTML_VOID_ELEMENTS = %w[
+        area
+        base
+        br
+        col
+        embed
+        hr
+        img
+        input
+        link
+        meta
+        param
+        source
+        track
+        wbr
+      ]
+
       # The opening tag of an element. It contains the opening character (<),
       # the name of the element, any optional attributes, and the closing
       # token (either > or />).
@@ -212,6 +231,10 @@ module SyntaxTree
 
         def child_nodes
           [opening, name, *attributes, closing]
+        end
+
+        def is_void_element?
+          HTML_VOID_ELEMENTS.include?(name.value)
         end
 
         alias deconstruct child_nodes
@@ -251,6 +274,10 @@ module SyntaxTree
         def deconstruct_keys(keys)
           super.merge(opening: opening, name: name, closing: closing)
         end
+      end
+
+      def is_void_element?
+        false
       end
 
       def without_new_line
