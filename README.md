@@ -79,6 +79,12 @@ puts failures
 
 ## Development
 
+Install `husky`:
+
+```sh
+npm i -g husky
+```
+
 Setup linting:
 
 ```sh
