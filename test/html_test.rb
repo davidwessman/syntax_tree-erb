@@ -205,5 +205,12 @@ module SyntaxTree
 
       assert_formatting(source, expected)
     end
+
+    def test_self_closing_for_void_elements
+      source =  "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" >"
+      expected = "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
+
+      assert_formatting(source, expected)
+    end
   end
 end
