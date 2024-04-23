@@ -176,6 +176,8 @@ module SyntaxTree
               when /\A-?%>/
                 enum.yield :erb_close, $&, index, line
                 state.pop
+              when /\Ayield\b/
+                enum.yield :erb_yield, $&, index, line
               when /\A[\p{L}\w]*\b/
                 # Split by word boundary while parsing the code
                 # This allows us to separate what_to_do vs do
@@ -648,7 +650,7 @@ module SyntaxTree
           result =
             atleast do
               maybe { parse_erb_do_close } || maybe { parse_erb_close } ||
-                maybe { consume(:erb_code) }
+                maybe { parse_erb_yield } || maybe { consume(:erb_code) }
             end
 
           items << result
@@ -699,6 +701,14 @@ module SyntaxTree
           new_line: new_line,
           closing: closing
         )
+      end
+
+      def parse_erb_yield
+        token = consume(:erb_yield)
+
+        new_line = maybe { parse_new_line }
+
+        ErbYield.new(location: token.location, new_line: new_line)
       end
 
       def parse_html_string

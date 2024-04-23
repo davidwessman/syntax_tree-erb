@@ -131,6 +131,10 @@ module SyntaxTree
         visit(node.closing)
       end
 
+      def visit_erb_yield(node)
+        q.text("yield")
+      end
+
       # Visit an ErbEnd node.
       def visit_erb_end(node)
         visit(node.opening_tag)
@@ -169,9 +173,14 @@ module SyntaxTree
 
         formatter.format(statement)
         formatter.flush
-        rows = formatter.output.join.split("\n")
 
-        output_rows(rows)
+        formatted =
+          formatter.output.join.gsub(
+            SyntaxTree::ERB::ErbYield::PLACEHOLDER,
+            "yield"
+          )
+
+        output_rows(formatted.split("\n"))
       end
 
       def output_rows(rows)

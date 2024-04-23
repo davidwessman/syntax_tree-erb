@@ -372,6 +372,7 @@ module SyntaxTree
         # Try to add the keyword to see if it parses
         result = ErbContent.new(value: [keyword, *content])
         @keyword = nil
+
         result
       end
     end
@@ -489,7 +490,17 @@ module SyntaxTree
       def initialize(value:)
         if value.is_a?(Array)
           value =
-            value.map { |token| token.is_a?(Token) ? token.value : token }.join
+            value
+              .map do |token|
+                if token.is_a?(Token)
+                  token.value
+                elsif token.is_a?(ErbYield)
+                  ErbYield::PLACEHOLDER
+                else
+                  token
+                end
+              end
+              .join
         end
         @value = SyntaxTree.parse(value.strip)
       end
@@ -515,6 +526,21 @@ module SyntaxTree
 
       def deconstruct_keys(keys)
         { value: value }
+      end
+    end
+
+    class ErbYield < Element
+      PLACEHOLDER = "qqqqy"
+      def initialize(new_line:, location:)
+        super(new_line: new_line, location: location)
+      end
+
+      def accept(visitor)
+        visitor.visit_erb_yield(self)
+      end
+
+      def child_nodes
+        []
       end
     end
 
