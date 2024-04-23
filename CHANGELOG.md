@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-04-23
+
+- ErbContent now has its value as child_nodes instead of empty array.
+- Allow html void tags and format self-closing tags
+
 ## [0.10.5] - 2023-09-03
 
 - Handle ERB-tags inside HTML-tags, like `<div <%= "class='foo'" %>>`
