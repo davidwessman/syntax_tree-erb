@@ -12,19 +12,19 @@ module SyntaxTree
     end
 
     def test_missing_erb_end_tag
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<% if no_end_tag %>")
       end
     end
 
     def test_missing_erb_block_end_tag
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<% no_end_tag do %>")
       end
     end
 
     def test_missing_erb_case_end_tag
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<% case variabel %>\n<% when 1>\n  Hello\n")
       end
     end
@@ -33,6 +33,23 @@ module SyntaxTree
       parsed = ERB.parse("<% \"Påäööööö\" %>")
       assert_equal(1, parsed.elements.size)
       assert_instance_of(SyntaxTree::ERB::ErbNode, parsed.elements.first)
+    end
+
+    def test_erb_errors
+      example = <<-HTML
+<ul>
+<% if @items.each do |i|%>
+<li><%= i %></li>
+<% end.blank? %>
+<li>No items</li>
+<% end %>
+</ul>
+HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(2, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Could not parse ERB-tag/, error.message)
     end
 
     def test_if_and_end_in_same_output_tag_short

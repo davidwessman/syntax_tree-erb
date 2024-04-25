@@ -5,25 +5,25 @@ require "test_helper"
 module SyntaxTree
   class HtmlTest < TestCase
     def test_html_missing_end_tag
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<h1>Hello World")
       end
     end
 
     def test_html_incorrect_end_tag
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<h1>Hello World</h2>")
       end
     end
 
     def test_html_unmatched_double_quote
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<div class=\"card-\"\">Hello World</div>")
       end
     end
 
     def test_html_unmatched_single_quote
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<div class='card-''>Hello World</div>")
       end
     end
@@ -49,7 +49,7 @@ module SyntaxTree
       )
 
       # Do not allow multiple doctype elements
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
+      assert_raises(SyntaxTree::Parser::ParseError) do
         ERB.parse("<!DOCTYPE html>\n<!DOCTYPE html>\n")
       end
     end
@@ -78,15 +78,9 @@ module SyntaxTree
     end
 
     def test_html_tag_names
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
-        ERB.parse("<@br />")
-      end
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
-        ERB.parse("<:br />")
-      end
-      assert_raises(SyntaxTree::ERB::Parser::ParseError) do
-        ERB.parse("<#br />")
-      end
+      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<@br />") }
+      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<:br />") }
+      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<#br />") }
     end
 
     def test_html_attribute_without_quotes
@@ -207,8 +201,10 @@ module SyntaxTree
     end
 
     def test_self_closing_for_void_elements
-      source =  "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" >"
-      expected = "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
+      source =
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" >"
+      expected =
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n"
 
       assert_formatting(source, expected)
     end
