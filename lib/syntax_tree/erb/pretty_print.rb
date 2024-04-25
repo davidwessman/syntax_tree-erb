@@ -143,6 +143,10 @@ module SyntaxTree
         visit_node("erb_do_close", node)
       end
 
+      def visit_erb_yield(node)
+        visit_node("erb_yield", node)
+      end
+
       # Visit a Doctype node.
       def visit_doctype(node)
         visit_node("doctype", node)

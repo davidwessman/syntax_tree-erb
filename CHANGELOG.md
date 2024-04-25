@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+- Support Ruby 3.3 by handling yield in ERB specifically
+
 ## [0.11.0] - 2024-04-23
 
 - ErbContent now has its value as child_nodes instead of empty array.
