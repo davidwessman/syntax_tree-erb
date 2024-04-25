@@ -5,14 +5,12 @@ module SyntaxTree
     class Parser
       # This is the parent class of any kind of errors that will be raised by
       # the parser.
-      class ParseError < StandardError
-      end
 
       # This error occurs when a certain token is expected in a certain place
       # but is not found. Sometimes this is handled internally because some
       # elements are optional. Other times it is not and it is raised to end the
       # parsing process.
-      class MissingTokenError < ParseError
+      class MissingTokenError < SyntaxTree::Parser::ParseError
       end
 
       attr_reader :source, :tokens
@@ -52,7 +50,13 @@ module SyntaxTree
 
           if tag.is_a?(Doctype)
             if @found_doctype
-              raise(ParseError, "Only one doctype element is allowed")
+              raise(
+                SyntaxTree::Parser::ParseError.new(
+                  "Only one doctype element is allowed",
+                  tag.location.start_line,
+                  0
+                )
+              )
             else
               @found_doctype = true
             end
@@ -123,8 +127,13 @@ module SyntaxTree
                 # abc
                 enum.yield :text, $&, index, line
               else
-                raise ParseError,
-                      "Unexpected character at #{index}: #{source[index]}"
+                raise(
+                  SyntaxTree::Parser::ParseError.new(
+                    "Unexpected character at #{index}: #{source[index]}",
+                    line,
+                    0
+                  )
+                )
               end
             in :erb_start
               case source[index..]
@@ -207,8 +216,13 @@ module SyntaxTree
                 # abc
                 enum.yield :text, $&, index, line
               else
-                raise ParseError,
-                      "Unexpected character in string at #{index}: #{source[index]}"
+                raise(
+                  SyntaxTree::Parser::ParseError.new(
+                    "Unexpected character in string at #{index}: #{source[index]}",
+                    line,
+                    0
+                  )
+                )
               end
             in :string_double_quote
               case source[index..]
@@ -230,8 +244,13 @@ module SyntaxTree
                 # abc
                 enum.yield :text, $&, index, line
               else
-                raise ParseError,
-                      "Unexpected character in string at #{index}: #{source[index]}"
+                raise(
+                  SyntaxTree::Parser::ParseError.new(
+                    "Unexpected character in string at #{index}: #{source[index]}",
+                    line,
+                    0
+                  )
+                )
               end
             in :inside
               case source[index..]
@@ -284,8 +303,13 @@ module SyntaxTree
                 enum.yield :string_open_single_quote, $&, index, line
                 state << :string_single_quote
               else
-                raise ParseError,
-                      "Unexpected character at #{index}: #{source[index]}"
+                raise(
+                  SyntaxTree::Parser::ParseError.new(
+                    "Unexpected character at #{index}: #{source[index]}",
+                    line,
+                    0
+                  )
+                )
               end
             end
 
@@ -304,7 +328,13 @@ module SyntaxTree
         type, value, index, line = tokens.peek
 
         if expected != type
-          raise MissingTokenError, "expected #{expected} got #{type}"
+          raise(
+            MissingTokenError.new(
+              "expected #{expected} got #{type}",
+              line,
+              index
+            )
+          )
         end
 
         tokens.next
@@ -335,7 +365,9 @@ module SyntaxTree
       # Otherwise we'll return the value returned by the block.
       def atleast
         result = yield
-        raise MissingTokenError if result.nil?
+        if result.nil?
+          raise(MissingTokenError.new("No matching token", nil, nil))
+        end
         result
       end
 
@@ -372,7 +404,13 @@ module SyntaxTree
         name = consume(:name)
 
         if name.value =~ /\A[@:#]/
-          raise ParseError, "Invalid html-tag name #{name}"
+          raise(
+            SyntaxTree::Parser::ParseError.new(
+              "Invalid html-tag name #{name}",
+              name.location.start_line,
+              0
+            )
+          )
         end
 
         attributes =
@@ -431,15 +469,21 @@ module SyntaxTree
 
           if closing.nil?
             raise(
-              ParseError,
-              "Missing closing tag for <#{opening.name.value}> at #{opening.location}"
+              SyntaxTree::Parser::ParseError.new(
+                "Missing closing tag for <#{opening.name.value}> at #{opening.location}",
+                opening.location.start_line,
+                0
+              )
             )
           end
 
           if closing.name.value != opening.name.value
             raise(
-              ParseError,
-              "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}> at #{closing.location}"
+              SyntaxTree::Parser::ParseError.new(
+                "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}> at #{closing.location}",
+                closing.location.start_line,
+                0
+              )
             )
           end
 
@@ -462,8 +506,11 @@ module SyntaxTree
         unless erb_tag.is_a?(ErbCaseWhen) || erb_tag.is_a?(ErbElse) ||
                  erb_tag.is_a?(ErbEnd)
           raise(
-            ParseError,
-            "Found no matching erb-tag to the if-tag at #{erb_node.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching erb-tag to the if-tag at #{erb_node.location}",
+              erb_node.location.start_line,
+              0
+            )
           )
         end
 
@@ -484,8 +531,11 @@ module SyntaxTree
           )
         else
           raise(
-            ParseError,
-            "Found no matching when- or else-tag to the case-tag at #{erb_node.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching when- or else-tag to the case-tag at #{erb_node.location}",
+              erb_node.location.start_line,
+              0
+            )
           )
         end
       end
@@ -501,8 +551,11 @@ module SyntaxTree
 
         unless erb_tag.is_a?(ErbControl) || erb_tag.is_a?(ErbEnd)
           raise(
-            ParseError,
-            "Found no matching erb-tag to the if-tag at #{erb_node.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching erb-tag to the if-tag at #{erb_node.location}",
+              erb_node.location.start_line,
+              0
+            )
           )
         end
 
@@ -530,8 +583,11 @@ module SyntaxTree
           )
         else
           raise(
-            ParseError,
-            "Found no matching elsif- or else-tag to the if-tag at #{erb_node.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching elsif- or else-tag to the if-tag at #{erb_node.location}",
+              erb_node.location.start_line,
+              0
+            )
           )
         end
       end
@@ -543,8 +599,11 @@ module SyntaxTree
 
         unless erb_end.is_a?(ErbEnd)
           raise(
-            ParseError,
-            "Found no matching end-tag for the else-tag at #{erb_node.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching end-tag for the else-tag at #{erb_node.location}",
+              erb_node.location.start_line,
+              0
+            )
           )
         end
 
@@ -582,8 +641,11 @@ module SyntaxTree
 
         if !closing_tag.is_a?(ErbClose)
           raise(
-            ParseError,
-            "Found no matching closing tag for the erb-tag at #{opening_tag.location}"
+            SyntaxTree::Parser::ParseError.new(
+              "Found no matching closing tag for the erb-tag at #{opening_tag.location}",
+              opening_tag.location.start_line,
+              0
+            )
           )
         end
 
@@ -615,8 +677,11 @@ module SyntaxTree
 
             unless erb_end.is_a?(ErbEnd)
               raise(
-                ParseError,
-                "Found no matching end-tag for the do-tag at #{erb_node.location}"
+                SyntaxTree::Parser::ParseError.new(
+                  "Found no matching end-tag for the do-tag at #{erb_node.location}",
+                  erb_node.location.start_line,
+                  0
+                )
               )
             end
 
@@ -630,13 +695,23 @@ module SyntaxTree
             erb_node
           end
         end
-      rescue MissingTokenError => error
+      rescue SyntaxTree::Parser::ParseError => error
         # If we have parsed tokens that we cannot process after we parsed <%, we should throw a ParseError
         # and not let it be handled by a `maybe`.
         if opening_tag
+          message =
+            if error.message.include?("Could not parse ERB-tag")
+              error.message
+            else
+              "Could not parse ERB-tag: #{error.message}"
+            end
+
           raise(
-            ParseError,
-            "Could not parse ERB-tag at #{opening_tag.location}"
+            SyntaxTree::Parser::ParseError.new(
+              message,
+              opening_tag.location.start_line,
+              0
+            )
           )
         else
           raise(error)
