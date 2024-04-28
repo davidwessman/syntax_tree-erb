@@ -4,28 +4,73 @@ require "test_helper"
 
 module SyntaxTree
   class HtmlTest < TestCase
-    def test_html_missing_end_tag
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<h1>Hello World")
-      end
+    def test_html_wrong_end_tag
+      example = <<-HTML
+      <div>
+        <ul>
+          <li>A</li>
+          <li>B</li>
+          <li>C</li>
+          <li>D</li>
+      </div>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(7, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Expected closing tag for <ul> but got <div>/, error.message)
+    end
+
+    def test_html_no_end_tag
+      example = <<-HTML
+      <h1>Hello World
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Missing closing tag for <h1>/, error.message)
     end
 
     def test_html_incorrect_end_tag
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<h1>Hello World</h2>")
-      end
+      example = <<-HTML
+      <div>
+      <h1>Hello World</h2>
+      </div>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(2, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Expected closing tag for <h1> but got <h2>/, error.message)
     end
 
     def test_html_unmatched_double_quote
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<div class=\"card-\"\">Hello World</div>")
-      end
+      example = <<-HTML
+      <div class="card-"">Hello World</div>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(
+        /Unexpected character, <, when looking for closing double quote/,
+        error.message
+      )
     end
 
     def test_html_unmatched_single_quote
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<div class='card-''>Hello World</div>")
-      end
+      example = <<-HTML
+      <div class='card-''>Hello World</div>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(
+        /Unexpected character, <, when looking for closing single quote/,
+        error.message
+      )
     end
 
     def test_empty_file
@@ -47,11 +92,19 @@ module SyntaxTree
         [SyntaxTree::ERB::ErbNode, SyntaxTree::ERB::Doctype],
         parsed.elements.map(&:class)
       )
+    end
 
-      # Do not allow multiple doctype elements
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<!DOCTYPE html>\n<!DOCTYPE html>\n")
-      end
+    def test_html_doctype_duplicate
+      example = <<-HTML
+      <!DOCTYPE html>
+      <h1>Hello World</h1>
+      <!DOCTYPE html>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(3, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Duplicate doctype declaration/, error.message)
     end
 
     def test_html_comment
@@ -77,10 +130,28 @@ module SyntaxTree
       assert_equal("\"", elements.last.value.value)
     end
 
-    def test_html_tag_names
-      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<@br />") }
-      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<:br />") }
-      assert_raises(SyntaxTree::Parser::ParseError) { ERB.parse("<#br />") }
+    def test_html_tag_name_at
+      ERB.parse("<@br />")
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Invalid HTML-tag name @br/, error.message)
+    end
+
+    def test_html_tag_name_colon
+      ERB.parse("<:br />")
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Invalid HTML-tag name :br/, error.message)
+    end
+
+    def test_html_tag_name_hash
+      ERB.parse("<#br />")
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Invalid HTML-tag name #br/, error.message)
     end
 
     def test_html_attribute_without_quotes

@@ -370,10 +370,20 @@ module SyntaxTree
         end
       rescue SyntaxTree::Parser::ParseError
         # Try to add the keyword to see if it parses
-        result = ErbContent.new(value: [keyword, *content])
-        @keyword = nil
+        begin
+          result = ErbContent.new(value: [keyword, *content])
+          @keyword = nil
 
-        result
+          result
+        rescue SyntaxTree::Parser::ParseError => error
+          raise(
+            SyntaxTree::Parser::ParseError.new(
+              "Could not parse ERB-tag: #{error.message}",
+              @opening_tag.location.start_line + error.lineno - 1,
+              error.column
+            )
+          )
+        end
       end
     end
 

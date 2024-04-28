@@ -12,21 +12,47 @@ module SyntaxTree
     end
 
     def test_missing_erb_end_tag
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<% if no_end_tag %>")
-      end
+      example = <<-HTML
+      <ul>
+        <% if condition %>
+          <li>A</li>
+          <li>B</li>
+          <li><%= "C" %></li>
+      </ul>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(2, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/No matching ERB-tag for the <% if %>/, error.message)
     end
 
     def test_missing_erb_block_end_tag
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<% no_end_tag do %>")
-      end
+      example = <<-HTML
+      <% no_end_tag do %>
+        <h1>What</h1>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(1, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/No matching <% end %> for the <% do %>/, error.message)
     end
 
     def test_missing_erb_case_end_tag
-      assert_raises(SyntaxTree::Parser::ParseError) do
-        ERB.parse("<% case variabel %>\n<% when 1>\n  Hello\n")
-      end
+      example = <<-HTML
+      <% case variabel %>
+      <% when 1 %>
+        Hello
+      <% when 2 %>
+        World
+      <h1>What</h1>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(4, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/No matching ERB-tag for the <% when %>/, error.message)
     end
 
     def test_erb_code_with_non_ascii
@@ -35,19 +61,42 @@ module SyntaxTree
       assert_instance_of(SyntaxTree::ERB::ErbNode, parsed.elements.first)
     end
 
-    def test_erb_errors
+    def test_erb_syntax_error
       example = <<-HTML
-<ul>
-<% if @items.each do |i|%>
-<li><%= i %></li>
-<% end.blank? %>
-<li>No items</li>
-<% end %>
-</ul>
-HTML
+      <ul>
+      <% if @items.each do |i|%>
+      <li><%= i %></li>
+      <% end.blank? %>
+      <li>No items</li>
+      <% end %>
+      </ul>
+      HTML
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
-      assert_equal(2, error.lineno)
+      assert_equal(4, error.lineno)
+      assert_equal(0, error.column)
+      assert_match(/Could not parse ERB-tag/, error.message)
+    end
+
+    def test_erb_syntax_error2
+      example = <<-HTML
+      <%= content_tag :header do %>
+        <div class="flex-1 min-w-0">
+          <h2>
+            <%= yield :page_header %>
+          </h2>
+          <%= content_tag :div do %>
+            <%= yield :page_subheader %>
+          <% end if content_for?(:page_subheader) %>
+        </div>
+        <%= content_tag :div do %>
+          <%= yield :page_actions %>
+        <% end if content_for?(:page_actions) %>
+      <% end if content_for?(:page_header) %>
+      HTML
+      ERB.parse(example)
+    rescue SyntaxTree::Parser::ParseError => error
+      assert_equal(8, error.lineno)
       assert_equal(0, error.column)
       assert_match(/Could not parse ERB-tag/, error.message)
     end
