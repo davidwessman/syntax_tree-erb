@@ -52,7 +52,7 @@ module SyntaxTree
             if @found_doctype
               raise(
                 SyntaxTree::Parser::ParseError.new(
-                  "Only one doctype element is allowed",
+                  "Duplicate doctype declaration",
                   tag.location.start_line,
                   0
                 )
@@ -129,7 +129,7 @@ module SyntaxTree
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
-                    "Unexpected character at #{index}: #{source[index]}",
+                    "Unexpected character: #{source[index]}",
                     line,
                     0
                   )
@@ -218,7 +218,7 @@ module SyntaxTree
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
-                    "Unexpected character in string at #{index}: #{source[index]}",
+                    "Unexpected character, #{source[index]}, when looking for closing single quote",
                     line,
                     0
                   )
@@ -246,7 +246,7 @@ module SyntaxTree
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
-                    "Unexpected character in string at #{index}: #{source[index]}",
+                    "Unexpected character, #{source[index]}, when looking for closing double quote",
                     line,
                     0
                   )
@@ -305,7 +305,7 @@ module SyntaxTree
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
-                    "Unexpected character at #{index}: #{source[index]}",
+                    "Unexpected character, #{source[index]}, when parsing HTML- or ERB-tag",
                     line,
                     0
                   )
@@ -406,7 +406,7 @@ module SyntaxTree
         if name.value =~ /\A[@:#]/
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Invalid html-tag name #{name}",
+              "Invalid HTML-tag name #{name.value}",
               name.location.start_line,
               0
             )
@@ -470,7 +470,7 @@ module SyntaxTree
           if closing.nil?
             raise(
               SyntaxTree::Parser::ParseError.new(
-                "Missing closing tag for <#{opening.name.value}> at #{opening.location}",
+                "Missing closing tag for <#{opening.name.value}>",
                 opening.location.start_line,
                 0
               )
@@ -480,7 +480,7 @@ module SyntaxTree
           if closing.name.value != opening.name.value
             raise(
               SyntaxTree::Parser::ParseError.new(
-                "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}> at #{closing.location}",
+                "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}>",
                 closing.location.start_line,
                 0
               )
@@ -505,10 +505,11 @@ module SyntaxTree
 
         unless erb_tag.is_a?(ErbCaseWhen) || erb_tag.is_a?(ErbElse) ||
                  erb_tag.is_a?(ErbEnd)
+          location = erb_tag&.location || erb_node.location
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching erb-tag to the if-tag at #{erb_node.location}",
-              erb_node.location.start_line,
+              "No matching ERB-tag for the <% #{erb_node.keyword.value} %>",
+              location.start_line,
               0
             )
           )
@@ -532,7 +533,7 @@ module SyntaxTree
         else
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching when- or else-tag to the case-tag at #{erb_node.location}",
+              "No matching when- or else-tag for the case-tag",
               erb_node.location.start_line,
               0
             )
@@ -552,7 +553,7 @@ module SyntaxTree
         unless erb_tag.is_a?(ErbControl) || erb_tag.is_a?(ErbEnd)
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching erb-tag to the if-tag at #{erb_node.location}",
+              "No matching ERB-tag for the <% if %>",
               erb_node.location.start_line,
               0
             )
@@ -584,7 +585,7 @@ module SyntaxTree
         else
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching elsif- or else-tag to the if-tag at #{erb_node.location}",
+              "No matching <% elsif %> or <% else %> for the <% if %>",
               erb_node.location.start_line,
               0
             )
@@ -600,7 +601,7 @@ module SyntaxTree
         unless erb_end.is_a?(ErbEnd)
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching end-tag for the else-tag at #{erb_node.location}",
+              "No matching <% end %> for the <% else %>",
               erb_node.location.start_line,
               0
             )
@@ -642,8 +643,8 @@ module SyntaxTree
         if !closing_tag.is_a?(ErbClose)
           raise(
             SyntaxTree::Parser::ParseError.new(
-              "Found no matching closing tag for the erb-tag at #{opening_tag.location}",
-              opening_tag.location.start_line,
+              "No matching closing tag for the <% #{keyword.value} %>",
+              closing_tag.location.start_line,
               0
             )
           )
@@ -678,7 +679,7 @@ module SyntaxTree
             unless erb_end.is_a?(ErbEnd)
               raise(
                 SyntaxTree::Parser::ParseError.new(
-                  "Found no matching end-tag for the do-tag at #{erb_node.location}",
+                  "No matching <% end %> for the <% do %>",
                   erb_node.location.start_line,
                   0
                 )
@@ -694,27 +695,6 @@ module SyntaxTree
           else
             erb_node
           end
-        end
-      rescue SyntaxTree::Parser::ParseError => error
-        # If we have parsed tokens that we cannot process after we parsed <%, we should throw a ParseError
-        # and not let it be handled by a `maybe`.
-        if opening_tag
-          message =
-            if error.message.include?("Could not parse ERB-tag")
-              error.message
-            else
-              "Could not parse ERB-tag: #{error.message}"
-            end
-
-          raise(
-            SyntaxTree::Parser::ParseError.new(
-              message,
-              opening_tag.location.start_line,
-              0
-            )
-          )
-        else
-          raise(error)
         end
       end
 
