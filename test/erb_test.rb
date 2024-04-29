@@ -12,7 +12,7 @@ module SyntaxTree
     end
 
     def test_missing_erb_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <ul>
         <% if condition %>
           <li>A</li>
@@ -23,12 +23,12 @@ module SyntaxTree
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(2, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(2, error.column)
       assert_match(/No matching ERB-tag for the <% if %>/, error.message)
     end
 
     def test_missing_erb_block_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <% no_end_tag do %>
         <h1>What</h1>
       HTML
@@ -40,7 +40,7 @@ module SyntaxTree
     end
 
     def test_missing_erb_case_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <% case variabel %>
       <% when 1 %>
         Hello
@@ -62,24 +62,24 @@ module SyntaxTree
     end
 
     def test_erb_syntax_error
-      example = <<-HTML
+      example = <<~HTML
       <ul>
-      <% if @items.each do |i|%>
-      <li><%= i %></li>
-      <% end.blank? %>
-      <li>No items</li>
-      <% end %>
+        <% if @items.each do |i| %>
+          <li><%= i %></li>
+        <% end.blank? %>
+          <li>No items</li>
+        <% end %>
       </ul>
       HTML
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(4, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(7, error.column)
       assert_match(/Could not parse ERB-tag/, error.message)
     end
 
     def test_erb_syntax_error2
-      example = <<-HTML
+      example = <<~HTML
       <%= content_tag :header do %>
         <div class="flex-1 min-w-0">
           <h2>
@@ -97,7 +97,7 @@ module SyntaxTree
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(8, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(9, error.column)
       assert_match(/Could not parse ERB-tag/, error.message)
     end
 
@@ -231,6 +231,45 @@ module SyntaxTree
       expected = "<%= what %>\n"
 
       assert_formatting(source, expected)
+    end
+
+    def test_parsing_column_position
+      example = <<~HTML
+      <ul>
+        <% if condition %>
+          <li>A</li>
+        <% end %>
+        <!-- Comment
+        about something and other
+        --><%= yes %>
+      </ul>
+      HTML
+      parsed = ERB.parse(example)
+      elements = parsed.elements
+
+      assert_equal(1, elements.size)
+
+      ul = elements.first
+
+      assert_equal(1, ul.location.start_line)
+      assert_equal(8, ul.location.end_line)
+      assert_equal(0, ul.location.start_char)
+      assert_equal(0, ul.location.start_column)
+      assert_equal(5, ul.location.end_column)
+      assert_equal(3, ul.elements.size)
+
+      if_node = ul.elements.first
+
+      assert_equal(2, if_node.location.start_line)
+      assert_equal(4, if_node.location.end_line)
+      assert_equal(2, if_node.location.start_column)
+
+      comment_node = ul.elements[1]
+
+      assert_equal(5, comment_node.location.start_line)
+      assert_equal(7, comment_node.location.end_line)
+      assert_equal(2, comment_node.location.start_column)
+      assert_equal(6, comment_node.location.end_column)
     end
   end
 end

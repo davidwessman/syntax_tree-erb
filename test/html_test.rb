@@ -5,7 +5,7 @@ require "test_helper"
 module SyntaxTree
   class HtmlTest < TestCase
     def test_html_wrong_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <div>
         <ul>
           <li>A</li>
@@ -22,7 +22,7 @@ module SyntaxTree
     end
 
     def test_html_no_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <h1>Hello World
       HTML
       ERB.parse(example)
@@ -33,7 +33,7 @@ module SyntaxTree
     end
 
     def test_html_incorrect_end_tag
-      example = <<-HTML
+      example = <<~HTML
       <div>
       <h1>Hello World</h2>
       </div>
@@ -41,18 +41,18 @@ module SyntaxTree
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(2, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(15, error.column)
       assert_match(/Expected closing tag for <h1> but got <h2>/, error.message)
     end
 
     def test_html_unmatched_double_quote
-      example = <<-HTML
+      example = <<~HTML
       <div class="card-"">Hello World</div>
       HTML
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(1, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(31, error.column)
       assert_match(
         /Unexpected character, <, when looking for closing double quote/,
         error.message
@@ -60,13 +60,13 @@ module SyntaxTree
     end
 
     def test_html_unmatched_single_quote
-      example = <<-HTML
+      example = <<~HTML
       <div class='card-''>Hello World</div>
       HTML
       ERB.parse(example)
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(1, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(31, error.column)
       assert_match(
         /Unexpected character, <, when looking for closing single quote/,
         error.message
@@ -95,7 +95,7 @@ module SyntaxTree
     end
 
     def test_html_doctype_duplicate
-      example = <<-HTML
+      example = <<~HTML
       <!DOCTYPE html>
       <h1>Hello World</h1>
       <!DOCTYPE html>
@@ -134,7 +134,7 @@ module SyntaxTree
       ERB.parse("<@br />")
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(1, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(1, error.column)
       assert_match(/Invalid HTML-tag name @br/, error.message)
     end
 
@@ -142,7 +142,7 @@ module SyntaxTree
       ERB.parse("<:br />")
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(1, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(1, error.column)
       assert_match(/Invalid HTML-tag name :br/, error.message)
     end
 
@@ -150,7 +150,7 @@ module SyntaxTree
       ERB.parse("<#br />")
     rescue SyntaxTree::Parser::ParseError => error
       assert_equal(1, error.lineno)
-      assert_equal(0, error.column)
+      assert_equal(1, error.column)
       assert_match(/Invalid HTML-tag name #br/, error.message)
     end
 
