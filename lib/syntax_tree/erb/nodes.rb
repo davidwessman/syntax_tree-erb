@@ -2,48 +2,6 @@
 
 module SyntaxTree
   module ERB
-    # A Location represents a position for a node in the source file.
-    class Location
-      attr_reader :start_char, :end_char, :start_line, :end_line
-
-      def initialize(start_char:, end_char:, start_line:, end_line:)
-        @start_char = start_char
-        @end_char = end_char
-        @start_line = start_line
-        @end_line = end_line
-      end
-
-      def deconstruct_keys(keys)
-        {
-          start_char: start_char,
-          end_char: end_char,
-          start_line: start_line,
-          end_line: end_line
-        }
-      end
-
-      def to(other)
-        Location.new(
-          start_char: start_char,
-          start_line: start_line,
-          end_char: other.end_char,
-          end_line: other.end_line
-        )
-      end
-
-      def <=>(other)
-        start_char <=> other.start_char
-      end
-
-      def to_s
-        if start_line == end_line
-          "line #{start_line}, char #{start_char}..#{end_char}"
-        else
-          "line #{start_line},char #{start_char} to line #{end_line}, char #{end_char}"
-        end
-      end
-    end
-
     # A parent node that contains a bit of shared functionality.
     class Node
       def format(q)
@@ -322,6 +280,7 @@ module SyntaxTree
             )
           end
 
+        @content = content
         @content = prepare_content(content)
         @closing_tag = closing_tag
       end
@@ -376,11 +335,19 @@ module SyntaxTree
 
           result
         rescue SyntaxTree::Parser::ParseError => error
+          opening_location = opening_tag.location
+          content_location = content.first&.location || opening_location
           raise(
             SyntaxTree::Parser::ParseError.new(
               "Could not parse ERB-tag: #{error.message}",
               @opening_tag.location.start_line + error.lineno - 1,
-              error.column
+              (
+                if opening_location.start_line == error.lineno
+                  opening_location.start_column + error.column - 1
+                else
+                  content_location.start_column + error.column - 1
+                end
+              )
             )
           )
         end

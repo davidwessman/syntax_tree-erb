@@ -54,7 +54,7 @@ module SyntaxTree
                 SyntaxTree::Parser::ParseError.new(
                   "Duplicate doctype declaration",
                   tag.location.start_line,
-                  0
+                  tag.location.start_column
                 )
               )
             else
@@ -73,6 +73,7 @@ module SyntaxTree
       def make_tokens
         Enumerator.new do |enum|
           index = 0
+          column_index = 0
           line = 1
           state = %i[outside]
 
@@ -82,56 +83,56 @@ module SyntaxTree
               case source[index..]
               when /\A\n{2,}/
                 # two or more newlines should be ONE blank line
-                enum.yield :blank_line, $&, index, line
+                enum.yield(:blank_line, $&, index, line, column_index)
                 line += $&.count("\n")
               when /\A\n/
                 # newlines
-                enum.yield :new_line, $&, index, line
+                enum.yield(:new_line, $&, index, line, column_index)
                 line += 1
               when /\A<!--(.|\r?\n)*?-->/m
                 # comments
                 # <!-- this is a comment -->
-                enum.yield :html_comment, $&, index, line
+                enum.yield(:html_comment, $&, index, line, column_index)
                 line += $&.count("\n")
               when /\A<!DOCTYPE/, /\A<!doctype/
                 # document type tags
                 # <!DOCTYPE
-                enum.yield :doctype, $&, index, line
+                enum.yield(:doctype, $&, index, line, column_index)
                 state << :inside
               when /\A<%#[\s\S]*?%>/
                 # An ERB-comment
                 # <%# this is an ERB comment %>
-                enum.yield :erb_comment, $&, index, line
+                enum.yield(:erb_comment, $&, index, line, column_index)
               when /\A<%={1,2}/, /\A<%-/, /\A<%/
                 # the beginning of an ERB tag
                 # <%
                 # <%=, <%==
-                enum.yield :erb_open, $&, index, line
+                enum.yield(:erb_open, $&, index, line, column_index)
                 state << :erb_start
                 line += $&.count("\n")
               when %r{\A</}
                 # the beginning of a closing tag
                 # </
-                enum.yield :slash_open, $&, index, line
+                enum.yield(:slash_open, $&, index, line, column_index)
                 state << :inside
               when /\A</
                 # the beginning of an opening tag
                 # <
-                enum.yield :open, $&, index, line
+                enum.yield(:open, $&, index, line, column_index)
                 state << :inside
               when /\A(?: |\t|\r)+/m
                 # whitespace
-                enum.yield :whitespace, $&, index, line
+                enum.yield(:whitespace, $&, index, line, column_index)
               when /\A(?!\s+$)[^<\n]+/
                 # plain text content, but do not allow only white space
                 # abc
-                enum.yield :text, $&, index, line
+                enum.yield(:text, $&, index, line, column_index)
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
                     "Unexpected character: #{source[index]}",
                     line,
-                    0
+                    column_index
                   )
                 )
               end
@@ -139,31 +140,31 @@ module SyntaxTree
               case source[index..]
               when /\A\s*if/
                 # if statement
-                enum.yield :erb_if, $&, index, line
+                enum.yield(:erb_if, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*unless/
-                enum.yield :erb_unless, $&, index, line
+                enum.yield(:erb_unless, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*elsif/
-                enum.yield :erb_elsif, $&, index, line
+                enum.yield(:erb_elsif, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*else/
-                enum.yield :erb_else, $&, index, line
+                enum.yield(:erb_else, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*case/
-                enum.yield :erb_case, $&, index, line
+                enum.yield(:erb_case, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*when/
-                enum.yield :erb_when, $&, index, line
+                enum.yield(:erb_when, $&, index, line, column_index)
                 state.pop
                 state << :erb
               when /\A\s*end/
-                enum.yield :erb_end, $&, index, line
+                enum.yield(:erb_end, $&, index, line, column_index)
                 state.pop
                 state << :erb
               else
@@ -177,78 +178,88 @@ module SyntaxTree
               case source[index..]
               when /\A[\n]+/
                 # newlines
-                enum.yield :erb_code, $&, index, line
+                enum.yield(:erb_code, $&, index, line, column_index)
                 line += $&.count("\n")
               when /\Ado\b(\s*\|[\w\s,]+\|)?\s*-?%>/
-                enum.yield :erb_do_close, $&, index, line
+                enum.yield(:erb_do_close, $&, index, line, column_index)
                 state.pop
               when /\A-?%>/
-                enum.yield :erb_close, $&, index, line
+                enum.yield(:erb_close, $&, index, line, column_index)
                 state.pop
               when /\Ayield\b/
-                enum.yield :erb_yield, $&, index, line
+                enum.yield(:erb_yield, $&, index, line, column_index)
               when /\A[\p{L}\w]*\b/
                 # Split by word boundary while parsing the code
                 # This allows us to separate what_to_do vs do
-                enum.yield :erb_code, $&, index, line
+                enum.yield(:erb_code, $&, index, line, column_index)
               else
-                enum.yield :erb_code, source[index], index, line
+                enum.yield(:erb_code, source[index], index, line, column_index)
                 index += 1
+                column_index += 1
                 next
               end
             in :string_single_quote
               case source[index..]
               when /\A(?: |\t|\n|\r\n)+/m
-                # whitespace
-                enum.yield :whitespace, $&, index, line
+                enum.yield(:whitespace, $&, index, line, column_index)
                 line += $&.count("\n")
               when /\A\'/
                 # the end of a quoted string
-                enum.yield :string_close_single_quote, $&, index, line
+                enum.yield(
+                  :string_close_single_quote,
+                  $&,
+                  index,
+                  line,
+                  column_index
+                )
                 state.pop
               when /\A<%[=]?/
                 # the beginning of an ERB tag
                 # <%
-                enum.yield :erb_open, $&, index, line
+                enum.yield(:erb_open, $&, index, line, column_index)
                 state << :erb_start
               when /\A[^<']+/
                 # plain text content
                 # abc
-                enum.yield :text, $&, index, line
+                enum.yield(:text, $&, index, line, column_index)
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
                     "Unexpected character, #{source[index]}, when looking for closing single quote",
                     line,
-                    0
+                    column_index
                   )
                 )
               end
             in :string_double_quote
               case source[index..]
               when /\A(?: |\t|\n|\r\n)+/m
-                # whitespace
-                enum.yield :whitespace, $&, index, line
+                enum.yield(:whitespace, $&, index, line, column_index)
                 line += $&.count("\n")
               when /\A\"/
-                # the end of a quoted string
-                enum.yield :string_close_double_quote, $&, index, line
+                enum.yield(
+                  :string_close_double_quote,
+                  $&,
+                  index,
+                  line,
+                  column_index
+                )
                 state.pop
               when /\A<%[=]?/
                 # the beginning of an ERB tag
                 # <%
-                enum.yield :erb_open, $&, index, line
+                enum.yield(:erb_open, $&, index, line, column_index)
                 state << :erb_start
               when /\A[^<"]+/
                 # plain text content
                 # abc
-                enum.yield :text, $&, index, line
+                enum.yield(:text, $&, index, line, column_index)
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
                     "Unexpected character, #{source[index]}, when looking for closing double quote",
                     line,
-                    0
+                    column_index
                   )
                 )
               end
@@ -260,63 +271,76 @@ module SyntaxTree
               when /\A-?%>/
                 # the end of an ERB tag
                 # -%> or %>
-                enum.yield :erb_close, $&, index, line
+                enum.yield(:erb_close, $&, index, line, column_index)
                 state.pop
               when /\A>/
                 # the end of a tag
                 # >
-                enum.yield :close, $&, index, line
+                enum.yield(:close, $&, index, line, column_index)
                 state.pop
               when /\A\?>/
                 # the end of a tag
                 # ?>
-                enum.yield :special_close, $&, index, line
+                enum.yield(:special_close, $&, index, line, column_index)
                 state.pop
               when %r{\A/>}
                 # the end of a self-closing tag
-                enum.yield :slash_close, $&, index, line
+                enum.yield(:slash_close, $&, index, line, column_index)
                 state.pop
               when %r{\A/}
                 # a forward slash
                 # /
-                enum.yield :slash, $&, index, line
+                enum.yield :slash, $&, index, line, column_index
               when /\A=/
                 # an equals sign
                 # =
-                enum.yield :equals, $&, index, line
+                enum.yield :equals, $&, index, line, column_index
               when /\A[@#]*[:\w\.\-\_]+\b/
                 # a name for an element or an attribute
                 # strong, vue-component-kebab, VueComponentPascal
                 # abc, #abc, @abc, :abc
-                enum.yield :name, $&, index, line
+                enum.yield :name, $&, index, line, column_index
               when /\A<%/
                 # the beginning of an ERB tag
                 # <%
-                enum.yield :erb_open, $&, index, line
+                enum.yield :erb_open, $&, index, line, column_index
                 state << :erb_start
               when /\A"/
                 # the beginning of a string
-                enum.yield :string_open_double_quote, $&, index, line
+                enum.yield(
+                  :string_open_double_quote,
+                  $&,
+                  index,
+                  line,
+                  column_index
+                )
                 state << :string_double_quote
               when /\A'/
                 # the beginning of a string
-                enum.yield :string_open_single_quote, $&, index, line
+                enum.yield(
+                  :string_open_single_quote,
+                  $&,
+                  index,
+                  line,
+                  column_index
+                )
                 state << :string_single_quote
               else
                 raise(
                   SyntaxTree::Parser::ParseError.new(
                     "Unexpected character, #{source[index]}, when parsing HTML- or ERB-tag",
                     line,
-                    0
+                    column_index
                   )
                 )
               end
             end
 
             index += $&.length
+            column_index = $&.rindex("\n") || column_index + $&.length
           end
 
-          enum.yield :EOF, nil, index, line
+          enum.yield(:EOF, nil, index, line, column_index)
         end
       end
 
@@ -325,7 +349,7 @@ module SyntaxTree
       # return the new Token. Otherwise we're going to raise a
       # MissingTokenError.
       def consume(expected)
-        type, value, index, line = tokens.peek
+        type, value, index, line, column = tokens.peek
 
         if expected != type
           raise(
@@ -339,6 +363,8 @@ module SyntaxTree
 
         tokens.next
 
+        rindex = value.rindex("\n")
+
         Token.new(
           type: type,
           value: value,
@@ -347,7 +373,9 @@ module SyntaxTree
               start_char: index,
               end_char: index + value.length,
               start_line: line,
-              end_line: line + value.count("\n")
+              end_line: line + value.count("\n"),
+              start_column: column,
+              end_column: rindex ? value.length - rindex : column + value.length
             )
         )
       end
@@ -408,7 +436,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "Invalid HTML-tag name #{name.value}",
               name.location.start_line,
-              0
+              name.location.start_column
             )
           )
         end
@@ -472,7 +500,7 @@ module SyntaxTree
               SyntaxTree::Parser::ParseError.new(
                 "Missing closing tag for <#{opening.name.value}>",
                 opening.location.start_line,
-                0
+                opening.location.start_column
               )
             )
           end
@@ -482,7 +510,7 @@ module SyntaxTree
               SyntaxTree::Parser::ParseError.new(
                 "Expected closing tag for <#{opening.name.value}> but got <#{closing.name.value}>",
                 closing.location.start_line,
-                0
+                closing.location.start_column
               )
             )
           end
@@ -510,7 +538,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching ERB-tag for the <% #{erb_node.keyword.value} %>",
               location.start_line,
-              0
+              location.start_column
             )
           )
         end
@@ -535,7 +563,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching when- or else-tag for the case-tag",
               erb_node.location.start_line,
-              0
+              erb_node.location.start_column
             )
           )
         end
@@ -555,7 +583,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching ERB-tag for the <% if %>",
               erb_node.location.start_line,
-              0
+              erb_node.location.start_column
             )
           )
         end
@@ -587,7 +615,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching <% elsif %> or <% else %> for the <% if %>",
               erb_node.location.start_line,
-              0
+              erb_node.location.start_column
             )
           )
         end
@@ -603,7 +631,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching <% end %> for the <% else %>",
               erb_node.location.start_line,
-              0
+              erb_node.location.start_column
             )
           )
         end
@@ -645,7 +673,7 @@ module SyntaxTree
             SyntaxTree::Parser::ParseError.new(
               "No matching closing tag for the <% #{keyword.value} %>",
               closing_tag.location.start_line,
-              0
+              closing_tag.location.start_column
             )
           )
         end
@@ -681,7 +709,7 @@ module SyntaxTree
                 SyntaxTree::Parser::ParseError.new(
                   "No matching <% end %> for the <% do %>",
                   erb_node.location.start_line,
-                  0
+                  erb_node.location.start_column
                 )
               )
             end

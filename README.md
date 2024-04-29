@@ -30,18 +30,26 @@ Currently handles
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "w_syntax_tree-erb", "~> 0.10", require: false
+gem "w_syntax_tree-erb", "~> 0.11", require: false
 ```
 
 > I added the `w_` prefix to avoid conflicts if there will ever be an official `syntax_tree-erb` gem.
 
 ## Usage
 
+### Parsing
+
 ```sh
-bundle exec stree --plugins=erb "./**/*.html.erb"
+bundle exec stree ast --plugins=erb "./**/*.html.erb"
 ```
 
-From code:
+### Format
+
+```sh
+bundle exec stree write --plugins=erb "./**/*.html.erb"
+```
+
+### In code
 
 ```ruby
 require "syntax_tree/erb"

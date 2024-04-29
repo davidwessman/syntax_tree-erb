@@ -20,7 +20,8 @@ module SyntaxTree
 
       # Visit a Document node.
       def visit_document(node)
-        child_nodes = node.child_nodes.sort_by(&:location)
+        child_nodes =
+          node.child_nodes.sort_by { |node| node.location.start_char }
 
         handle_child_nodes(child_nodes)
 

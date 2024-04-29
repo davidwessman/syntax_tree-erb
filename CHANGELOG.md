@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 ## [Unreleased]
 
 - Support Ruby 3.3 by handling yield in ERB specifically
+- Use SyntaxTree own class for ParseError to get better error feedback
+- Adds handling for keeping track of column index, to support better error messages
 
 ## [0.11.0] - 2024-04-23
 
