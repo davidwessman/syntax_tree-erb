@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/davidwessman/syntax_tree-erb"
   spec.license = "MIT"
   spec.metadata = { "rubygems_mfa_required" => "true" }
+  spec.required_ruby_version = ">= 3.0.0"
 
   spec.files =
     Dir.chdir(__dir__) do
