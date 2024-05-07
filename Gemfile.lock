@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    w_syntax_tree-erb (0.11.0)
+    w_syntax_tree-erb (0.12.0)
       prettier_print (~> 1.2, >= 1.2.0)
       syntax_tree (~> 6.1, >= 6.1.1)
 
