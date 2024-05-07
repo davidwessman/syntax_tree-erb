@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [Unreleased]
 
+## [0.12.0] - 2024-05-07
+
 - Support Ruby 3.3 by handling yield in ERB specifically
 - Use SyntaxTree own class for ParseError to get better error feedback
 - Adds handling for keeping track of column index, to support better error messages
@@ -118,7 +120,9 @@ Output:
 - Can format a lot of .html.erb-syntax and works as a plugin to syntax_tree.
 - This is still early and there are a lot of different weird syntaxes out there.
 
-[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.5...HEAD
+[unreleased]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.5...v0.11.0
 [0.10.5]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.4...v0.10.5
 [0.10.4]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.3...v0.10.4
 [0.10.3]: https://github.com/davidwessman/syntax_tree-erb/compare/v0.10.2...v0.10.3
