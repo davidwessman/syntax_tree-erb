@@ -32,6 +32,10 @@ module SyntaxTree
       assert_formatting("layout")
     end
 
+    def test_method_calls_without_parens
+      assert_formatting("without_parens")
+    end
+
     private
 
     def assert_formatting(name)

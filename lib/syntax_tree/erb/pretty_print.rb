@@ -51,7 +51,7 @@ module SyntaxTree
             end
             if node.content
               q.breakable
-              q.text("content")
+              visit(node.content)
             end
 
             q.breakable
@@ -67,6 +67,7 @@ module SyntaxTree
           q.text("(erb_block")
           q.nest(2) do
             q.breakable
+            visit(node.opening)
             q.seplist(node.elements) { |child_node| visit(child_node) }
           end
           q.breakable

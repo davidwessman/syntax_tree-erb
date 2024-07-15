@@ -111,8 +111,19 @@ module SyntaxTree
     def test_if_and_end_in_same_tag
       source =
         "Hello\n<% if true then this elsif false then that else maybe end %>\n<h1>Hey</h1>"
-      expected =
-        "Hello\n<% if true\n  this\nelsif false\n  that\nelse\n  maybe\nend %>\n<h1>Hey</h1>\n"
+      expected = <<~EXPECTED
+        Hello
+        <%
+          if true
+            this
+          elsif false
+            that
+          else
+            maybe
+          end
+        %>
+        <h1>Hey</h1>
+      EXPECTED
 
       assert_formatting(source, expected)
     end
@@ -127,8 +138,13 @@ module SyntaxTree
     def test_long_if_statement
       source =
         "<%=number_to_percentage(@reports&.first&.stability*100,precision: 1) if @reports&.first&.other&.stronger&.longer %>"
-      expected =
-        "<%= if @reports&.first&.other&.stronger&.longer\n  number_to_percentage(@reports&.first&.stability * 100, precision: 1)\nend %>\n"
+      expected = <<~EXPECTED
+        <%=
+          if @reports&.first&.other&.stronger&.longer
+            number_to_percentage(@reports&.first&.stability * 100, precision: 1)
+          end
+        %>
+      EXPECTED
 
       assert_formatting(source, expected)
     end
@@ -136,8 +152,15 @@ module SyntaxTree
     def test_erb_else_if_statement
       source =
         "<%if this%>\n  <h1>A</h1>\n<%elsif that%>\n  <h1>B</h1>\n<%else%>\n  <h1>C</h1>\n<%end%>"
-      expected =
-        "<% if this %>\n  <h1>A</h1>\n<% elsif that %>\n  <h1>B</h1>\n<% else %>\n  <h1>C</h1>\n<% end %>\n"
+      expected = <<~EXPECTED
+        <% if this %>
+          <h1>A</h1>
+        <% elsif that %>
+          <h1>B</h1>
+        <% else %>
+          <h1>C</h1>
+        <% end %>
+      EXPECTED
 
       assert_formatting(source, expected)
     end
@@ -145,8 +168,14 @@ module SyntaxTree
     def test_long_ternary
       source =
         "<%= number_to_percentage(@reports&.first&.stability * 100, precision: @reports&.first&.stability ? 'Stable' : 'Unstable') %>"
-      expected =
-        "<%= number_to_percentage(\n  @reports&.first&.stability * 100,\n  precision: @reports&.first&.stability ? \"Stable\" : \"Unstable\"\n) %>\n"
+      expected = <<~EXPECTED
+        <%=
+          number_to_percentage(
+            @reports&.first&.stability * 100,
+            precision: @reports&.first&.stability ? "Stable" : "Unstable"
+          )
+        %>
+      EXPECTED
 
       assert_formatting(source, expected)
     end
@@ -190,8 +219,13 @@ module SyntaxTree
     def test_erb_ternary_as_argument_without_parentheses
       source =
         "<%=     f.submit( f.object.id.present?     ? t('buttons.titles.save'):t('buttons.titles.create'))   %>"
-      expected =
-        "<%= f.submit(\n  f.object.id.present? ? t(\"buttons.titles.save\") : t(\"buttons.titles.create\")\n) %>\n"
+      expected = <<~EXPECTED
+        <%=
+          f.submit(
+            f.object.id.present? ? t("buttons.titles.save") : t("buttons.titles.create")
+          )
+        %>
+      EXPECTED
 
       assert_formatting(source, expected)
     end
