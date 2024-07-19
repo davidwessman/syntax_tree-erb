@@ -128,9 +128,32 @@ module SyntaxTree
       assert_formatting(source, expected)
     end
 
-    def test_erb_inside_html_tag
-      source = "<div <% if eeee then \"b\" else c end %>></div>"
-      expected = "<div <% eeee ? \"b\" : c %>></div>\n"
+    def test_erb_output_inside_html_tag
+      source = "<div <%= if eeee then \"b\" else c end %>></div>"
+      expected = "<div <%= eeee ? \"b\" : c %>></div>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_if_inside_html_tag
+      source = "<div <% if eeee %>b<% else %><%= c %><% end %>></div>"
+      expected = "<div <% if eeee %>b<% else %><%= c %><% end %>></div>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_output_inside_html_attribute_value
+      source = "<div class='foo <%= some_class %>'></div>"
+      expected = "<div class=\"foo <%= some_class %>\"></div>\n"
+
+      assert_formatting(source, expected)
+    end
+
+    def test_erb_if_inside_html_attribute_value
+      source =
+        "<div class='foo <% if a %>b<%    else %><%= c %><% end %>'></div>"
+      expected =
+        "<div class=\"foo <% if a %>b<% else %><%= c %><% end %>\"></div>\n"
 
       assert_formatting(source, expected)
     end
