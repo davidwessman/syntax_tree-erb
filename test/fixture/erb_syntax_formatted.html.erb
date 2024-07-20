@@ -29,17 +29,19 @@ Treat it as a comment
   <h1>Cool</h1>
 <%- end %>
 
-<%= t(
-  ".verified_at",
-  at:
-    (
-      if @repository.github_status_at
-        l(@repository.github_status_at, format: :long)
-      else
-        "?"
-      end
-    )
-) %>
+<%=
+  t(
+    ".verified_at",
+    at:
+      (
+        if @repository.github_status_at
+          l(@repository.github_status_at, format: :long)
+        else
+          "?"
+        end
+      )
+  )
+%>
 
 <%
   assign_b ||= "b"

@@ -7,6 +7,7 @@ module SyntaxTree
 
       def initialize(q)
         @q = q
+        @inside_html_attributes = false
       end
 
       # Visit a Token node.
@@ -28,20 +29,33 @@ module SyntaxTree
         q.breakable(force: true)
       end
 
-      def visit_block(node)
-        visit(node.opening)
+      # Dependent block is one that follows after a "main one", e.g. <% else %>
+      def visit_block(node, dependent: false)
+        process =
+          proc do
+            visit(node.opening)
 
-        breakable = breakable_inside(node)
-        if node.elements.any?
-          q.indent do
-            q.breakable if breakable
-            handle_child_nodes(node.elements)
+            breakable = breakable_inside(node)
+            if node.elements.any?
+              q.indent do
+                q.breakable("") if breakable
+                handle_child_nodes(node.elements)
+              end
+            end
+
+            if node.closing
+              q.breakable("") if breakable
+              visit(node.closing)
+            end
           end
-        end
 
-        if node.closing
-          q.breakable("") if breakable
-          visit(node.closing)
+        if dependent
+          process.call
+        else
+          q.group do
+            q.break_parent unless @inside_html_attributes
+            process.call
+          end
         end
       end
 
@@ -92,11 +106,11 @@ module SyntaxTree
       end
 
       def visit_erb_elsif(node)
-        visit_block(node)
+        visit_block(node, dependent: true)
       end
 
       def visit_erb_else(node)
-        visit_block(node)
+        visit_block(node, dependent: true)
       end
 
       def visit_erb_case(node)
@@ -104,27 +118,42 @@ module SyntaxTree
       end
 
       def visit_erb_case_when(node)
-        visit_block(node)
+        visit_block(node, dependent: true)
       end
 
       # Visit an ErbNode node.
       def visit_erb(node)
         visit(node.opening_tag)
 
-        if node.keyword
-          q.text(" ")
-          visit(node.keyword)
+        q.group do
+          if !node.keyword && node.content.blank?
+            q.text(" ")
+          elsif node.keyword && node.content.blank?
+            q.text(" ")
+            visit(node.keyword)
+            q.text(" ")
+          else
+            visit_erb_content(node.content, keyword: node.keyword)
+            q.breakable unless node.closing_tag.is_a?(ErbDoClose)
+          end
         end
-
-        node.content.blank? ? q.text(" ") : visit(node.content)
 
         visit(node.closing_tag)
       end
 
       def visit_erb_do_close(node)
         closing = node.closing.value.end_with?("-%>") ? "-%>" : "%>"
-        q.text(node.closing.value.gsub(closing, "").rstrip)
-        q.text(" ")
+        # Append the "do" at the end of Ruby code (within the same group)
+        last_erb_content_group = q.current_group.contents.last
+        last_erb_content_indent = last_erb_content_group.contents.last
+        q.with_target(last_erb_content_indent.contents) do
+          q.text(" ")
+          q.text(node.closing.value.gsub(closing, "").rstrip)
+        end
+
+        # Add a breakable space after the indent, but within the same group
+        q.with_target(last_erb_content_group.contents) { q.breakable }
+
         q.text(closing)
       end
 
@@ -145,55 +174,26 @@ module SyntaxTree
         visit(node.closing_tag)
       end
 
-      def visit_erb_content(node)
+      def visit_erb_content(node, keyword: nil)
         # Reject all VoidStmt to avoid empty lines
-        nodes =
-          (node.value&.statements&.child_nodes || []).reject do |node|
-            node.is_a?(SyntaxTree::VoidStmt)
-          end
+        nodes = child_nodes_without_void_statements(node)
+        return if nodes.empty?
 
-        if nodes.size == 1
-          q.text(" ")
-          format_statement(nodes.first)
-          q.text(" ")
-        elsif nodes.size > 1
-          q.indent do
-            q.breakable("")
-            q.seplist(nodes, -> { q.breakable("") }) do |child_node|
-              format_statement(child_node)
-            end
-          end
-
+        q.indent do
           q.breakable
-        end
-      end
-
-      def format_statement(statement)
-        formatter =
-          SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
-
-        formatter.format(statement)
-        formatter.flush
-
-        formatted =
-          formatter.output.join.gsub(
-            SyntaxTree::ERB::ErbYield::PLACEHOLDER,
-            "yield"
-          )
-
-        output_rows(formatted.split("\n"))
-      end
-
-      def output_rows(rows)
-        if rows.size > 1
-          q.seplist(rows, -> { q.breakable("") }) { |row| q.text(row) }
-        elsif rows.size == 1
-          q.text(rows.first)
+          q.seplist(nodes, -> { q.breakable(force: true) }) do |child_node|
+            code =
+              format_statement_with_keyword_prefix(child_node, keyword: keyword)
+            output_rows(code.split("\n"))
+            # Pass the keyword only to the first child node
+            keyword = nil
+          end
         end
       end
 
       # Visit an HtmlNode::OpeningTag node.
       def visit_opening_tag(node)
+        @inside_html_attributes = true
         q.group do
           visit(node.opening)
           visit(node.name)
@@ -219,6 +219,7 @@ module SyntaxTree
 
           visit(node.closing)
         end
+        @inside_html_attributes = false
       end
 
       # Visit an HtmlNode::ClosingTag node.
@@ -382,6 +383,108 @@ module SyntaxTree
       def node_should_group(node)
         node.is_a?(SyntaxTree::ERB::CharData) ||
           node.is_a?(SyntaxTree::ERB::ErbNode)
+      end
+
+      def child_nodes_without_void_statements(node)
+        (node.value&.statements&.child_nodes || []).reject do |node|
+          node.is_a?(SyntaxTree::VoidStmt)
+        end
+      end
+
+      def format_statement_with_keyword_prefix(statement, keyword: nil)
+        case keyword&.value
+        when nil
+          format_statement(statement)
+        when "if"
+          statement =
+            SyntaxTree::IfNode.new(
+              predicate: statement,
+              statements: void_body,
+              consequent: nil,
+              location: keyword.location
+            )
+          format_statement(statement).delete_suffix("\nend")
+        when "unless"
+          statement =
+            SyntaxTree::UnlessNode.new(
+              predicate: statement,
+              statements: void_body,
+              consequent: nil,
+              location: keyword.location
+            )
+          format_statement(statement).delete_suffix("\nend")
+        when "elsif"
+          statement =
+            SyntaxTree::Elsif.new(
+              predicate: statement,
+              statements: void_body,
+              consequent: nil,
+              location: keyword.location
+            )
+          format_statement(statement).delete_suffix("\nend")
+        when "case"
+          statement =
+            SyntaxTree::Case.new(
+              keyword:
+                SyntaxTree::Kw.new(value: "case", location: keyword.location),
+              value: statement,
+              consequent: void_body,
+              location: keyword.location
+            )
+          format_statement(statement).delete_suffix("\nend")
+        when "when"
+          statement =
+            SyntaxTree::When.new(
+              arguments: statement.contents,
+              statements: void_body,
+              consequent: nil,
+              location: keyword.location
+            )
+          format_statement(statement).delete_suffix("\nend")
+        else
+          q.text(keyword.value)
+          q.breakable
+          format_statement(statement)
+        end
+      end
+
+      def format_statement(statement)
+        formatter =
+          SyntaxTree::Formatter.new("", [], SyntaxTree::ERB::MAX_WIDTH)
+
+        formatter.format(statement)
+        formatter.flush
+
+        formatter.output.join.gsub(
+          SyntaxTree::ERB::ErbYield::PLACEHOLDER,
+          "yield"
+        )
+      end
+
+      def output_rows(rows)
+        if rows.size > 1
+          q.seplist(rows, -> { q.breakable(force: true) }) { |row| q.text(row) }
+        elsif rows.size == 1
+          q.text(rows.first)
+        end
+      end
+
+      def fake_location
+        Location.new(
+          start_line: 0,
+          start_char: 0,
+          start_column: 0,
+          end_line: 0,
+          end_char: 0,
+          end_column: 0
+        )
+      end
+
+      def void_body
+        SyntaxTree::Statements.new(
+          body: [SyntaxTree::VoidStmt.new(location: fake_location)],
+          location: fake_location
+        )
       end
     end
   end

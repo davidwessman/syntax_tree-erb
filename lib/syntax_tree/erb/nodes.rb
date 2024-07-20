@@ -322,10 +322,15 @@ module SyntaxTree
         if content.is_a?(ErbContent)
           content
         else
-          # Set content to nil if it is empty
           content ||= []
 
-          ErbContent.new(value: content)
+          if !content.empty? && keyword&.value == "when"
+            # "when" accepts multiple comma-separated arguments, so let's try
+            # to make them parsable.
+            ErbContent.new(value: ["[", *content, "]"])
+          else
+            ErbContent.new(value: content)
+          end
         end
       rescue SyntaxTree::Parser::ParseError
         # Try to add the keyword to see if it parses

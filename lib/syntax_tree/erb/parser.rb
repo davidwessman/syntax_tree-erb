@@ -19,6 +19,7 @@ module SyntaxTree
         @source = source
         @tokens = make_tokens
         @found_doctype = false
+        @erb_context = :outside
       end
 
       def parse
@@ -300,7 +301,7 @@ module SyntaxTree
                 # strong, vue-component-kebab, VueComponentPascal
                 # abc, #abc, @abc, :abc
                 enum.yield :name, $&, index, line, column_index
-              when /\A<%/
+              when /\A<%={1,2}/, /\A<%-/, /\A<%/
                 # the beginning of an ERB tag
                 # <%
                 enum.yield :erb_open, $&, index, line, column_index
@@ -419,7 +420,20 @@ module SyntaxTree
         items = []
 
         loop do
-          result = parse_any_tag
+          result =
+            case @erb_context
+            when :string
+              atleast do
+                maybe { consume(:text) } || maybe { consume(:whitespace) } ||
+                  maybe { parse_erb_tag }
+              end
+            when :inside
+              atleast do
+                maybe { parse_erb_tag } || maybe { parse_html_attribute }
+              end
+            when :outside
+              parse_any_tag
+            end
           items << result
           break if classes.any? { |cls| result.is_a?(cls) }
         end
@@ -441,12 +455,16 @@ module SyntaxTree
           )
         end
 
+        @erb_context = :inside
+
         attributes =
           many do
             atleast do
               maybe { parse_erb_tag } || maybe { parse_html_attribute }
             end
           end
+
+        @erb_context = :outside
 
         closing =
           atleast do
@@ -812,6 +830,8 @@ module SyntaxTree
           )
         end
 
+        @erb_context = :string
+
         contents =
           many do
             atleast do
@@ -819,6 +839,8 @@ module SyntaxTree
                 maybe { parse_erb_tag }
             end
           end
+
+        @erb_context = :inside
 
         closing =
           if opening.type == :string_open_double_quote
