@@ -31,22 +31,23 @@ module SyntaxTree
 
       # Dependent block is one that follows after a "main one", e.g. <% else %>
       def visit_block(node, dependent: false)
-        process = proc do
-          visit(node.opening)
+        process =
+          proc do
+            visit(node.opening)
 
-          breakable = breakable_inside(node)
-          if node.elements.any?
-            q.indent do
+            breakable = breakable_inside(node)
+            if node.elements.any?
+              q.indent do
+                q.breakable("") if breakable
+                handle_child_nodes(node.elements)
+              end
+            end
+
+            if node.closing
               q.breakable("") if breakable
-              handle_child_nodes(node.elements)
+              visit(node.closing)
             end
           end
-
-          if node.closing
-            q.breakable("") if breakable
-            visit(node.closing)
-          end
-        end
 
         if dependent
           process.call
@@ -181,7 +182,8 @@ module SyntaxTree
         q.indent do
           q.breakable
           q.seplist(nodes, -> { q.breakable(force: true) }) do |child_node|
-            code = format_statement_with_keyword_prefix(child_node, keyword: keyword)
+            code =
+              format_statement_with_keyword_prefix(child_node, keyword: keyword)
             output_rows(code.split("\n"))
             # Pass the keyword only to the first child node
             keyword = nil
@@ -423,7 +425,8 @@ module SyntaxTree
         when "case"
           statement =
             SyntaxTree::Case.new(
-              keyword: SyntaxTree::Kw.new(value: "case", location: keyword.location),
+              keyword:
+                SyntaxTree::Kw.new(value: "case", location: keyword.location),
               value: statement,
               consequent: void_body,
               location: keyword.location
