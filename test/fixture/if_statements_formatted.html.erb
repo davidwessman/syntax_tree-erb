@@ -19,8 +19,12 @@
   <% end %>
 </h1>
 
-<%= if @model
-  @model.name
-else
-  t("views.more_than_80_characters_long_row.categories.shared.version.default")
-end %>
+<%=
+  if @model
+    @model.name
+  else
+    t("views.more_than_80_characters_long_row.categories.shared.version.default")
+  end
+%>
+
+<div class="<% if this %>that<% else %>something else<% end %>"></div>

@@ -1,0 +1,23 @@
+<%= this_is "short", "enough" %>
+<%
+  if condition? this_is_short
+    x
+  else
+    y
+  end
+%>
+<%
+  if condition? this_is_pretty_long,
+                so_we_probably,
+                cant_fit_all_arguments,
+                in_one_line
+%>
+  <%=
+    render "some_partial",
+           param_one: 1,
+           param_two: 2,
+           param_three: 3,
+           param_four: 4,
+           param_five: 5
+  %>
+<% end %>

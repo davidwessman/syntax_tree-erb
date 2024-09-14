@@ -4,10 +4,12 @@
     <%= form.text_field(:name, class: "form-control") %>
   </div>
 
-  <%= form.submit(
-    "Very very very very very long text",
-    class: "btn btn-primary btn btn-primary btn btn-primary btn btn-primary"
-  ) %>
+  <%=
+    form.submit(
+      "Very very very very very long text",
+      class: "btn btn-primary btn btn-primary btn btn-primary btn btn-primary"
+    )
+  %>
 <% end %>
 
 <%= link_to(dont_replace, what_to_do, class: "do |what,bad|") do |hello| %>
