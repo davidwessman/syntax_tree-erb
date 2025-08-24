@@ -4,6 +4,20 @@
 
 [Syntax Tree](https://github.com/ruby-syntax-tree/syntax_tree) support for ERB.
 
+# Deprecated
+
+This gem was a lot of fun to implement and taught me a lot about syntax trees and parsing code.
+Deciding how to handle personal preferences, whitespaces and edge-cases is really hard.
+
+This will never be implemented in [syntax_tree](https://github.com/ruby-syntax-tree/syntax_tree/issues/383) but
+I hope that [HERB](https://github.com/marcoroth/herb) will become a perfect tool for the Ruby-ecosystem.
+
+**I will not do any more changes.**
+
+/ David, 2025-08-24
+
+----
+
 Currently handles
 
 - ERB
